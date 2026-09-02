@@ -1,0 +1,8 @@
+{
+  "name": "Earthquake Monitor",
+  "description": "Real-time Japan earthquake monitor with Kyoshin Top 5 Intensity dashboard, Wolfx EEW, and JMA travel time wave propagation visualization",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

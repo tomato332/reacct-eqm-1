@@ -1,0 +1,381 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": 1, "code": "JP-01", "name": "Hokkaido", "name_ja": "北海道", "region": "Hokkaido" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.0, 41.4], [140.4, 41.6], [140.8, 42.1], [141.3, 42.0], [141.7, 42.3], [143.0, 42.0], [144.5, 42.9], [145.8, 43.3], [145.3, 44.3], [144.0, 44.1], [143.3, 45.5], [141.8, 45.4], [142.0, 44.2], [141.5, 43.0], [140.6, 42.8], [140.0, 41.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 2, "code": "JP-02", "name": "Aomori", "name_ja": "青森県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.0, 40.5], [140.4, 41.5], [141.0, 41.5], [141.4, 41.2], [141.6, 40.5], [140.8, 40.3], [140.0, 40.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 3, "code": "JP-03", "name": "Iwate", "name_ja": "岩手県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.8, 40.3], [141.6, 40.5], [142.0, 39.5], [141.7, 38.9], [140.7, 38.9], [140.8, 40.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 4, "code": "JP-04", "name": "Miyagi", "name_ja": "宮城県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.7, 38.9], [141.7, 38.9], [141.5, 38.2], [140.8, 37.8], [140.4, 38.0], [140.7, 38.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 5, "code": "JP-05", "name": "Akita", "name_ja": "秋田県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.0, 40.5], [140.8, 40.3], [140.7, 38.9], [140.1, 38.9], [139.7, 39.8], [140.0, 40.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 6, "code": "JP-06", "name": "Yamagata", "name_ja": "山形県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.1, 38.9], [140.7, 38.9], [140.4, 38.0], [139.7, 37.8], [139.5, 38.5], [140.1, 38.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 7, "code": "JP-07", "name": "Fukushima", "name_ja": "福島県", "region": "Tohoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[139.7, 37.8], [140.4, 38.0], [140.8, 37.8], [141.0, 36.9], [140.3, 36.9], [139.2, 37.2], [139.7, 37.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 8, "code": "JP-08", "name": "Ibaraki", "name_ja": "茨城県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[140.3, 36.9], [141.0, 36.9], [140.8, 35.8], [139.8, 36.1], [140.3, 36.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 9, "code": "JP-09", "name": "Tochigi", "name_ja": "栃木県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[139.2, 37.2], [140.3, 36.9], [139.8, 36.1], [139.4, 36.2], [139.2, 37.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 10, "code": "JP-10", "name": "Gunma", "name_ja": "群馬県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.6, 36.8], [139.2, 37.2], [139.4, 36.2], [139.0, 36.1], [138.5, 36.3], [138.6, 36.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 11, "code": "JP-11", "name": "Saitama", "name_ja": "埼玉県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.8, 36.2], [139.8, 36.1], [139.9, 35.8], [138.9, 35.8], [138.8, 36.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 12, "code": "JP-12", "name": "Chiba", "name_ja": "千葉県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[139.8, 36.1], [140.8, 35.8], [140.9, 35.7], [139.9, 34.9], [139.8, 35.6], [139.8, 36.1]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 13, "code": "JP-13", "name": "Tokyo", "name_ja": "東京都", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.9, 35.8], [139.9, 35.8], [139.8, 35.6], [139.6, 35.5], [138.9, 35.7], [138.9, 35.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 14, "code": "JP-14", "name": "Kanagawa", "name_ja": "神奈川県", "region": "Kanto" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.9, 35.7], [139.6, 35.5], [139.7, 35.1], [139.0, 35.1], [138.9, 35.7]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 15, "code": "JP-15", "name": "Niigata", "name_ja": "新潟県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.2, 36.9], [139.2, 37.2], [139.7, 37.8], [139.5, 38.5], [139.1, 37.9], [138.2, 37.0], [138.2, 36.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 16, "code": "JP-16", "name": "Toyama", "name_ja": "富山県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[136.9, 36.8], [137.8, 36.9], [137.6, 36.3], [136.8, 36.3], [136.9, 36.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 17, "code": "JP-17", "name": "Ishikawa", "name_ja": "石川県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[136.2, 36.2], [136.8, 36.3], [137.6, 36.9], [137.2, 37.5], [136.9, 36.8], [136.2, 36.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 18, "code": "JP-18", "name": "Fukui", "name_ja": "福井県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.5, 35.5], [136.2, 36.2], [136.8, 36.3], [136.5, 35.7], [135.8, 35.5], [135.5, 35.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 19, "code": "JP-19", "name": "Yamanashi", "name_ja": "山梨県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[138.2, 35.8], [139.1, 35.8], [139.1, 35.3], [138.3, 35.3], [138.2, 35.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 20, "code": "JP-20", "name": "Nagano", "name_ja": "長野県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[137.6, 36.9], [138.6, 36.8], [138.8, 36.2], [138.2, 35.8], [137.6, 35.2], [137.4, 36.0], [137.6, 36.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 21, "code": "JP-21", "name": "Gifu", "name_ja": "岐阜県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[136.8, 36.3], [137.6, 36.3], [137.6, 35.2], [137.0, 35.2], [136.4, 35.3], [136.5, 35.7], [136.8, 36.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 22, "code": "JP-22", "name": "Shizuoka", "name_ja": "静岡県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[137.6, 35.2], [139.1, 35.3], [139.2, 34.6], [138.7, 34.6], [137.5, 34.6], [137.6, 35.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 23, "code": "JP-23", "name": "Aichi", "name_ja": "愛知県", "region": "Chubu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[136.7, 35.3], [137.6, 35.2], [137.5, 34.6], [136.9, 34.6], [136.7, 35.0], [136.7, 35.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 24, "code": "JP-24", "name": "Mie", "name_ja": "三重県", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[136.3, 35.2], [136.7, 35.0], [136.9, 34.6], [136.9, 34.2], [136.0, 33.7], [135.9, 34.3], [136.3, 35.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 25, "code": "JP-25", "name": "Shiga", "name_ja": "滋賀県", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.8, 35.5], [136.5, 35.7], [136.3, 35.2], [136.0, 34.8], [135.8, 34.9], [135.8, 35.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 26, "code": "JP-26", "name": "Kyoto", "name_ja": "京都府", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.2, 35.6], [135.8, 35.5], [135.8, 34.9], [135.7, 34.8], [135.1, 35.0], [135.2, 35.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 27, "code": "JP-27", "name": "Osaka", "name_ja": "大阪府", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.3, 34.8], [135.7, 34.8], [135.7, 34.3], [135.1, 34.3], [135.3, 34.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 28, "code": "JP-28", "name": "Hyogo", "name_ja": "兵庫県", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[134.3, 35.6], [135.2, 35.6], [135.3, 34.8], [135.1, 34.3], [134.5, 34.6], [134.3, 35.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 29, "code": "JP-29", "name": "Nara", "name_ja": "奈良県", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.7, 34.8], [136.0, 34.8], [135.9, 34.3], [135.7, 33.9], [135.6, 34.2], [135.7, 34.8]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 30, "code": "JP-30", "name": "Wakayama", "name_ja": "和歌山県", "region": "Kansai" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[135.1, 34.3], [135.6, 34.2], [135.7, 33.9], [136.0, 33.7], [135.8, 33.4], [135.1, 34.2], [135.1, 34.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 31, "code": "JP-31", "name": "Tottori", "name_ja": "鳥取県", "region": "Chugoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[133.2, 35.5], [134.3, 35.6], [134.3, 35.2], [133.2, 35.0], [133.2, 35.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 32, "code": "JP-32", "name": "Shimane", "name_ja": "島根県", "region": "Chugoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[131.7, 34.6], [133.2, 35.5], [133.2, 35.0], [131.8, 34.4], [131.7, 34.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 33, "code": "JP-33", "name": "Okayama", "name_ja": "岡山県", "region": "Chugoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[133.2, 35.0], [134.3, 35.2], [134.5, 34.6], [133.5, 34.4], [133.2, 35.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 34, "code": "JP-34", "name": "Hiroshima", "name_ja": "広島県", "region": "Chugoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[131.8, 34.4], [133.2, 35.0], [133.5, 34.4], [132.5, 34.2], [132.1, 34.2], [131.8, 34.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 35, "code": "JP-35", "name": "Yamaguchi", "name_ja": "山口県", "region": "Chugoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[130.9, 33.9], [131.7, 34.6], [131.8, 34.4], [132.1, 34.2], [132.1, 33.9], [130.9, 33.9]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 36, "code": "JP-36", "name": "Tokushima", "name_ja": "徳島県", "region": "Shikoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[134.0, 34.2], [134.6, 33.8], [134.2, 33.5], [133.8, 33.7], [134.0, 34.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 37, "code": "JP-37", "name": "Kagawa", "name_ja": "香川県", "region": "Shikoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[133.6, 34.4], [134.3, 34.2], [134.0, 34.2], [133.5, 34.0], [133.6, 34.4]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 38, "code": "JP-38", "name": "Ehime", "name_ja": "愛媛県", "region": "Shikoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[132.1, 33.5], [133.6, 34.4], [133.5, 34.0], [132.8, 33.2], [132.1, 32.9], [132.1, 33.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 39, "code": "JP-39", "name": "Kochi", "name_ja": "高知県", "region": "Shikoku" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[132.8, 33.2], [133.5, 34.0], [133.8, 33.7], [134.2, 33.5], [133.0, 32.7], [132.1, 32.9], [132.8, 33.2]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 40, "code": "JP-40", "name": "Fukuoka", "name_ja": "福岡県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[130.2, 33.6], [131.0, 33.9], [131.2, 33.5], [130.5, 33.1], [130.2, 33.6]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 41, "code": "JP-41", "name": "Saga", "name_ja": "佐賀県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[129.8, 33.5], [130.2, 33.6], [130.5, 33.1], [130.1, 33.0], [129.8, 33.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 42, "code": "JP-42", "name": "Nagasaki", "name_ja": "長崎県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[129.5, 33.3], [129.8, 33.5], [130.1, 33.0], [129.8, 32.7], [129.5, 33.3]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 43, "code": "JP-43", "name": "Kumamoto", "name_ja": "熊本県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[130.1, 33.0], [130.5, 33.1], [131.2, 32.8], [130.8, 32.2], [130.3, 32.0], [129.8, 32.7], [130.1, 33.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 44, "code": "JP-44", "name": "Oita", "name_ja": "大分県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[131.2, 33.5], [131.8, 33.6], [131.9, 33.0], [131.5, 32.7], [131.2, 32.8], [131.2, 33.5]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 45, "code": "JP-45", "name": "Miyazaki", "name_ja": "宮崎県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[131.5, 32.7], [131.9, 33.0], [131.4, 31.4], [130.8, 31.5], [131.2, 32.8], [131.5, 32.7]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 46, "code": "JP-46", "name": "Kagoshima", "name_ja": "鹿児島県", "region": "Kyushu" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[130.3, 32.0], [130.8, 32.2], [131.2, 32.8], [130.8, 31.5], [131.4, 31.4], [130.6, 31.0], [130.3, 32.0]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 47, "code": "JP-47", "name": "Okinawa", "name_ja": "沖縄県", "region": "Okinawa" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[127.5, 26.0], [128.3, 26.8], [128.2, 26.9], [127.4, 26.1], [127.5, 26.0]]]
+      }
+    }
+  ]
+}
