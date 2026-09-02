@@ -340,13 +340,14 @@ export class ServerIntensityAggregator {
   private async fetchYahooRealtime() {
     const delays = [1000, 2000, 3000, 4000, 5000];
     for (const delay of delays) {
-      const now = new Date(Date.now() - delay);
-      const yyyy = now.getFullYear();
-      const MM = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const HH = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      const ss = String(now.getSeconds()).padStart(2, '0');
+      const targetTime = new Date(Date.now() - delay);
+      const jst = new Date(targetTime.getTime() + (9 * 60 + targetTime.getTimezoneOffset()) * 60000);
+      const yyyy = jst.getFullYear();
+      const MM = String(jst.getMonth() + 1).padStart(2, '0');
+      const dd = String(jst.getDate()).padStart(2, '0');
+      const HH = String(jst.getHours()).padStart(2, '0');
+      const mm = String(jst.getMinutes()).padStart(2, '0');
+      const ss = String(jst.getSeconds()).padStart(2, '0');
       const folder = `${yyyy}${MM}${dd}`;
       const file = `${folder}${HH}${mm}${ss}`;
       const yahooUrl = `https://weather-kyoshin.west.edge.storage-yahoo.jp/RealTimeData/${folder}/${file}.json`;

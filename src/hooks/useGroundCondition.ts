@@ -22,8 +22,8 @@ export function useGroundCondition(lat?: number, lon?: number) {
 
     const fetchJshis = async () => {
       try {
-        const url = `https://www.j-shis.bosai.go.jp/map/api/sstrct/V2/meshinfo.geojson?position=${lon},${lat}&epsg=4326`;
-        const response = await fetch(url);
+        const targetUrl = `https://www.j-shis.bosai.go.jp/map/api/sstrct/V2/meshinfo.geojson?position=${lon},${lat}&epsg=4326`;
+        const response = await fetch(`/proxy?url=${encodeURIComponent(targetUrl)}`);
         if (!response.ok) throw new Error('J-SHIS API error');
         
         const data = await response.json();

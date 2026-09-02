@@ -164,7 +164,8 @@ export function createApp() {
   const ALLOWED_PROXY_HOSTS = [
     "weather-kyoshin.west.edge.storage-yahoo.jp",
     "api.wolfx.jp",
-    "www.kmoni.bosai.go.jp"
+    "www.kmoni.bosai.go.jp",
+    "www.j-shis.bosai.go.jp"
   ];
 
   app.get("/proxy", async (req, res) => {
