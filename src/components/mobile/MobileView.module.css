@@ -756,3 +756,289 @@
   font-size: 12px;
   color: var(--text-secondary);
 }
+
+.legendIconP {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #2563eb;
+  background-color: rgba(37, 99, 235, 0.2);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legendIconS {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #ea580c;
+  background-color: rgba(234, 88, 12, 0.2);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.legendIconEpicenter {
+  color: #dc2626;
+  font-weight: 900;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Alert Components & Tech Details (No Inline Styles)
+   -------------------------------------------------------------------------- */
+.mobileEewHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.mobileCloseBtn {
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+.mobileEewToggleBtn {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--accent-blue);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  margin-top: 2px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.mobileEewTechArea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  margin-top: 4px;
+}
+
+.waveP {
+  color: #2563eb;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.waveS {
+  color: #ea580c;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobileDetectAlert {
+  background-color: var(--surface);
+  border: 1.5px solid var(--accent-amber, #d97706);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.mobileDetectHeader {
+  background-color: var(--accent-amber, #d97706);
+  color: #ffffff;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Bottom Sheet Sub-Components (No Inline Styles)
+   -------------------------------------------------------------------------- */
+.tabInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sheetCollapseBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 8px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  touch-action: manipulation;
+}
+
+.sheetHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.sheetHeaderValue {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.emptyNotice {
+  text-align: center;
+  padding: 24px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.historyChipBadge {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.historyChipLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.filterResetBtn {
+  background: transparent;
+  border: none;
+  color: var(--accent-blue);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.rankBadgeTop {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #ca8a04;
+  border: 1px solid var(--border);
+}
+
+.rankBadgeNormal {
+  background-color: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.metaTextMuted {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   System Normal / Standby Status Card (평상시 상태 UI)
+   -------------------------------------------------------------------------- */
+.systemStatusCard {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.systemStatusHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.systemStatusTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.statusLiveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: pulseLive 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes pulseLive {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.systemUpdateTime {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.systemSourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.systemSourceItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background-color: var(--surface);
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.systemSourceDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  flex-shrink: 0;
+}

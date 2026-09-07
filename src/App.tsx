@@ -388,6 +388,15 @@ export default function App() {
     }
   }, [selectedP2PEvent, mapLoaded]);
 
+  // 창 리사이즈 및 모바일/PC 레이아웃 전환 시 맵 크기 즉시 보정
+  useEffect(() => {
+    if (mapRef.current) {
+      requestAnimationFrame(() => {
+        mapRef.current?.resize();
+      });
+    }
+  }, [isMobile]);
+
   // 3. 다크 / 라이트 모드 색상 토글
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;

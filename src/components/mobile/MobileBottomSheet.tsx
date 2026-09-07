@@ -5,6 +5,7 @@ import { TopStationItem } from '../../QuakeDetectService';
 import { P2PEarthquakeEvent, P2PObservationPoint } from '../../P2PQuakeService';
 import { translateRegionName, translatePrefecture, formatObservationPointName } from '../../translateUtils';
 import { ChevronUp, ChevronDown, MapPin, Activity, List, Info } from 'lucide-react';
+import { SystemStatusCard } from '../SystemStatusCard';
 import styles from './MobileView.module.css';
 
 const JMA_SCALES = [
@@ -164,7 +165,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
               className={`${styles.sheetTabItem} ${activeTab === 'intensity' ? styles.sheetTabItemActive : ''}`}
               onClick={() => setActiveTab('intensity')}
             >
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <div className={styles.tabInner}>
                 <Activity size={14} />
                 <span>{t('dashboard.tab') || t('dashboard.title') || '실시간 진도'}</span>
               </div>
@@ -177,7 +178,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
               className={`${styles.sheetTabItem} ${activeTab === 'p2p' ? styles.sheetTabItemActive : ''}`}
               onClick={() => setActiveTab('p2p')}
             >
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <div className={styles.tabInner}>
                 <List size={14} />
                 <span>{t('p2p.tab') || t('p2p.title') || '지진 정보'}</span>
               </div>
@@ -190,15 +191,15 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
               className={`${styles.sheetTabItem} ${activeTab === 'legend' ? styles.sheetTabItemActive : ''}`}
               onClick={() => setActiveTab('legend')}
             >
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <div className={styles.tabInner}>
                 <Info size={14} />
-                <span>{t('legend.title') || '범례'}</span>
+                <span>{t('legend.title') || '상태·범례'}</span>
               </div>
             </button>
 
             <button
               type="button"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 8px', color: 'var(--text-muted)' }}
+              className={styles.sheetCollapseBtn}
               onClick={() => setSheetState('collapsed')}
               aria-label="시트 접기"
             >
@@ -210,16 +211,16 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
             {/* 탭 1: 실시간 진도 TOP 5 */}
             {activeTab === 'intensity' && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                <div className={styles.sheetHeaderRow}>
                   <span>{t('dashboard.maxNationwide') || '전국 최대 계측진도'}</span>
-                  <span style={{ color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                  <span className={styles.sheetHeaderValue}>
                     {top1Station ? `${top1Station.jindoFormatted} (${top1Station.jindoStr})` : '-'}
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div className={styles.listContainer}>
                   {topStations.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                    <div className={styles.emptyNotice}>
                       {t('dashboard.loading')}
                     </div>
                   ) : (
@@ -238,16 +239,11 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                         >
                           <div className={styles.mobileStationLeft}>
                             <div
-                              className={styles.mobileRankBadge}
-                              style={{
-                                backgroundColor: idx === 0 ? 'rgba(234, 179, 8, 0.2)' : 'var(--surface)',
-                                color: idx === 0 ? '#ca8a04' : 'var(--text-secondary)',
-                                border: '1px solid var(--border)',
-                              }}
+                              className={`${styles.mobileRankBadge} ${idx === 0 ? styles.rankBadgeTop : styles.rankBadgeNormal}`}
                             >
                               {idx + 1}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                            <div className={styles.columnGroupMin}>
                               <span className={styles.mobileStationName}>{transName}</span>
                               <span className={styles.mobileStationRegion}>{transRegion}</span>
                             </div>
@@ -286,23 +282,12 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                           onClick={() => onSelectP2PEvent(ev)}
                         >
                           <span
-                            style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: 3,
-                              backgroundColor: ev.maxScaleColor,
-                              color: '#fff',
-                              fontSize: 10,
-                              fontWeight: 800,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                            }}
+                            className={styles.historyChipBadge}
+                            style={{ backgroundColor: ev.maxScaleColor }}
                           >
                             {ev.maxScaleStr}
                           </span>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                          <span className={styles.historyChipLabel}>
                             {epiName || t('p2p.unknownEpicenter')}
                           </span>
                         </div>
@@ -331,7 +316,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  <div className={styles.emptyNotice}>
                     {t('p2p.empty')}
                   </div>
                 )}
@@ -348,15 +333,15 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                       setSheetState('half');
                     }}
                   >
-                    <MapPin size={16} />
+                    <MapPin size={15} />
                     <span>{t('p2p.focusEpicenter') || '진앙지 화면 중앙 맞춤'}</span>
                   </button>
                 )}
 
                 {/* 관측 지점 리스트 */}
                 {currentP2PEvent && currentP2PEvent.points.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                  <div className={styles.listContainer}>
+                    <div className={styles.sheetHeaderRow}>
                       <span>
                         {t('p2p.filterPointsCount', {
                           count: selectedScaleFilter
@@ -369,7 +354,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                         <button
                           type="button"
                           onClick={() => setSelectedScaleFilter(null)}
-                          style={{ background: 'transparent', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
+                          className={styles.filterResetBtn}
                         >
                           {t('p2p.all')}
                         </button>
@@ -409,10 +394,14 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
               </>
             )}
 
-            {/* 탭 3: 범례 및 기호 안내 */}
+            {/* 탭 3: 상태 및 범례 안내 */}
             {activeTab === 'legend' && (
               <div className={styles.mobileLegendSection}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>
+                {/* 1. 시스템 정상 상태 (평상시 상태 UI) */}
+                <SystemStatusCard />
+
+                {/* 2. JMA 진도 계급 안내 */}
+                <div className={styles.metaTextMuted}>
                   {t('legend.scaleTitle') || '일본 기상청(JMA) 진도 계급'}
                 </div>
 
@@ -436,17 +425,18 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                   })}
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+                {/* 3. 지도 기호 범례 */}
+                <div className={styles.listContainer}>
                   <div className={styles.mobileLegendRow}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #2563eb', backgroundColor: 'rgba(37,99,235,0.2)', display: 'inline-block' }} />
+                    <span className={styles.legendIconP} />
                     <span>P파 도달 예상선 (초동 지진파)</span>
                   </div>
                   <div className={styles.mobileLegendRow}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #ea580c', backgroundColor: 'rgba(234,88,12,0.2)', display: 'inline-block' }} />
+                    <span className={styles.legendIconS} />
                     <span>S파 도달 예상선 (주요 강한 흔들림 파)</span>
                   </div>
                   <div className={styles.mobileLegendRow}>
-                    <span style={{ color: '#dc2626', fontWeight: 900, fontSize: 14 }}>✕</span>
+                    <span className={styles.legendIconEpicenter}>✕</span>
                     <span>추정 진앙지 (Epicenter)</span>
                   </div>
                 </div>
