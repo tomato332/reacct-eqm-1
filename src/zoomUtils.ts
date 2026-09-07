@@ -7,10 +7,14 @@ export const JAPAN_BOUNDS: [[number, number], [number, number]] = [
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function fitJapanBounds(map: any, animate = true) {
+export function fitJapanBounds(
+  map: any,
+  animate = true,
+  customPadding?: { top: number; bottom: number; left: number; right: number }
+) {
   if (!map) return;
   map.fitBounds(JAPAN_BOUNDS, {
-    padding: { top: 35, bottom: 35, left: 35, right: 35 },
+    padding: customPadding || { top: 35, bottom: 35, left: 35, right: 35 },
     duration: animate ? 800 : 0,
     essential: true
   });

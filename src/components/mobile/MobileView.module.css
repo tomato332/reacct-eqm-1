@@ -1,0 +1,758 @@
+/* ==========================================================================
+   Mobile-Optimized Layout & Components Stylesheet (Pure CSS)
+   - Professional, tactile, ergonomic mobile interfaces
+   - Zero gradients or excessive shadows
+   - Minimum 44px touch targets
+   - Safe-area support for modern mobile devices
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Mobile Container & Safe Layout
+   -------------------------------------------------------------------------- */
+.mobileRoot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Top Header
+   -------------------------------------------------------------------------- */
+.mobileHeader {
+  pointer-events: auto;
+  width: 100%;
+  padding-top: max(10px, env(safe-area-inset-top));
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.headerTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.brandStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-emerald, #10b981);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+  flex-shrink: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headerIconBtn {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.headerIconBtn:active {
+  background-color: var(--surface-active);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Data Source Segmented Control */
+.sourceTabs {
+  display: flex;
+  width: 100%;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  box-sizing: border-box;
+  gap: 2px;
+}
+
+.sourceTabItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  height: 34px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.sourceTabItemActive {
+  background-color: var(--surface);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  font-weight: 700;
+}
+
+.sourceIndicatorDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+}
+
+.sourceIndicatorDotYahoo {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #f43f5e;
+}
+
+.sourceIndicatorDotP2P {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #0284c7;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Settings Menu (Modal / Dropdown)
+   -------------------------------------------------------------------------- */
+.settingsOverlay {
+  pointer-events: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 60px 12px 12px 12px;
+}
+
+.settingsMenu {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: var(--shadow-lg);
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settingsSectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.langButtonGroup {
+  display: flex;
+  gap: 4px;
+}
+
+.mobileLangBtn {
+  flex: 1;
+  height: 36px;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mobileLangBtnActive {
+  background-color: var(--surface);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  font-weight: 800;
+}
+
+.settingsRowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Floating Map Controls
+   -------------------------------------------------------------------------- */
+.mobileFloatingTools {
+  position: absolute;
+  right: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 25;
+  transition: bottom 0.25s ease-out;
+}
+
+.floatingToolBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floatingToolBtn:active {
+  background-color: var(--surface-active);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Alerts Overlay (EEW & Live Detect)
+   -------------------------------------------------------------------------- */
+.mobileAlertsArea {
+  pointer-events: auto;
+  width: 100%;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileEewBanner {
+  background-color: var(--surface);
+  border: 2px solid var(--accent-red);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobileEewHeader {
+  background-color: var(--accent-red);
+  color: #ffffff;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobileEewBody {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileEewMainRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobileEewEpicenter {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobileEewBadge {
+  background-color: var(--accent-red);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.mobileEewDetailRow {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobileEewWaveRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background-color: var(--surface-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Bottom Sheet (Draggable, Ergonomic Drawer)
+   -------------------------------------------------------------------------- */
+.bottomSheetContainer {
+  pointer-events: auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  box-sizing: border-box;
+  transition: height 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+/* Height presets */
+.sheetCollapsed {
+  height: calc(64px + env(safe-area-inset-bottom));
+}
+
+.sheetHalf {
+  height: 46vh;
+}
+
+.sheetFull {
+  height: calc(88vh - env(safe-area-inset-top));
+}
+
+/* Drag Handle Bar */
+.sheetHandleRow {
+  width: 100%;
+  padding-top: 8px;
+  padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: pan-y;
+  flex-shrink: 0;
+}
+
+.sheetHandleBar {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: var(--border-strong);
+}
+
+/* Collapsed Quick Peek Bar */
+.sheetPeekBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  height: 44px;
+  cursor: pointer;
+  touch-action: manipulation;
+  flex-shrink: 0;
+}
+
+.sheetPeekLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.peekDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  flex-shrink: 0;
+}
+
+.peekTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheetPeekRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.peekScaleBadge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Navigation Tabs inside Bottom Sheet */
+.sheetTabBar {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--surface-subtle);
+  padding: 0 8px;
+  gap: 4px;
+  flex-shrink: 0;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+.sheetTabItem {
+  flex: 1;
+  height: 42px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+.sheetTabItemActive {
+  color: var(--accent-blue);
+  border-bottom-color: var(--accent-blue);
+  font-weight: 700;
+}
+
+/* Scrollable Sheet Content Area */
+.sheetScrollContent {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile Station List & P2P Cards inside Sheet
+   -------------------------------------------------------------------------- */
+.mobileStationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mobileStationRow:active {
+  background-color: var(--surface-active);
+  border-color: var(--border-strong);
+}
+
+.mobileStationLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobileRankBadge {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mobileStationName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobileStationRegion {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mobileStationRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mobileJindoValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+.mobileJindoBadge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile P2P Earthquake Card inside Sheet */
+.mobileP2PBanner {
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobileP2PEpicenter {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mobileP2PMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mobileP2PMaxScale {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.mobileFocusBtn {
+  width: 100%;
+  height: 40px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mobileFocusBtn:active {
+  background-color: var(--surface-active);
+  border-color: var(--border-strong);
+}
+
+/* Horizontal History Scroll for Mobile */
+.mobileHistoryScroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 2px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.mobileHistoryScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mobileHistoryChip {
+  flex-shrink: 0;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  max-width: 180px;
+}
+
+.mobileHistoryChipActive {
+  background-color: var(--accent-blue-subtle, rgba(37, 99, 235, 0.08));
+  border-color: var(--accent-blue, #2563eb);
+}
+
+/* Observation Points List in Mobile */
+.mobilePointsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobilePointItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mobilePointItem:active {
+  background-color: var(--surface-active);
+}
+
+.mobilePointName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobilePointScale {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Legend in Mobile */
+.mobileLegendSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobileScaleGrid {
+  display: flex;
+  gap: 2px;
+}
+
+.mobileScaleCell {
+  flex: 1;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffffff;
+  padding: 4px 0;
+  border-radius: 2px;
+}
+
+.mobileLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}

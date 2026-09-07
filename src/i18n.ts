@@ -25,6 +25,9 @@ export const resources = {
       },
       dashboard: {
         title: '실시간 최대 진도 관측소',
+        tab: '실시간 진도',
+        maxNationwide: '전국 최대 계측진도',
+        waiting: '수신 대기중',
         autoRefresh: '1초 주기 자동 갱신',
         detecting: '지진동 감지중',
         normal: '평상시 / 미진',
@@ -35,6 +38,7 @@ export const resources = {
       },
       p2p: {
         title: '일본 기상청 발표 지진 정보',
+        tab: '지진 정보',
         liveWs: '실시간 수신중',
         selectHistory: '과거 지진 이력 선택',
         unknownEpicenter: '진원지 불명',
@@ -52,6 +56,8 @@ export const resources = {
         tsunamiUnknown: '쓰나미 영향 조사중',
         tsunamiWarning: '쓰나미 주의보/경보 발표중!',
         clickToFocus: '클릭하여 지도로 이동',
+        focusEpicenter: '진앙지 화면 중앙 맞춤',
+        empty: '지진 정보가 없습니다',
         scale: '진도 {{scale}}',
       },
       eew: {
@@ -65,9 +71,12 @@ export const resources = {
         pWaveRadius: 'P파 반경',
         sWaveRadius: 'S파 (주요동) 반경',
         originTime: '발생 시각',
+        focusEpicenter: '진앙지로 지도 이동',
         close: '닫기',
       },
       legend: {
+        title: '범례',
+        scaleTitle: '일본 기상청(JMA) 진도 계급',
         jmaScale: 'JMA 관측 진도 계급',
         epicenter: '진원지 (Epicenter)',
         hypocenterAlt: '진앙지 (Epicenter)',
@@ -124,6 +133,9 @@ export const resources = {
       },
       dashboard: {
         title: 'Real-time Max Intensity Stations',
+        tab: 'Live Intensity',
+        maxNationwide: 'Max Intensity Nationwide',
+        waiting: 'Waiting for data',
         autoRefresh: '1s Auto Refresh',
         detecting: 'Shaking Detected',
         normal: 'Normal / Minor',
@@ -134,6 +146,7 @@ export const resources = {
       },
       p2p: {
         title: 'JMA Earthquake Information',
+        tab: 'Quake Info',
         liveWs: 'Live Connected',
         selectHistory: 'Select Past Earthquake',
         unknownEpicenter: 'Unknown Epicenter',
@@ -151,6 +164,8 @@ export const resources = {
         tsunamiUnknown: 'Tsunami threat checking',
         tsunamiWarning: 'Tsunami Warning / Advisory in effect!',
         clickToFocus: 'Click to focus on map',
+        focusEpicenter: 'Focus Epicenter on Map',
+        empty: 'No earthquake data',
         scale: 'Intensity {{scale}}',
       },
       eew: {
@@ -164,9 +179,12 @@ export const resources = {
         pWaveRadius: 'P-Wave Radius',
         sWaveRadius: 'S-Wave (Main) Radius',
         originTime: 'Origin Time',
+        focusEpicenter: 'Focus Epicenter on Map',
         close: 'Close',
       },
       legend: {
+        title: 'Legend',
+        scaleTitle: 'JMA Seismic Intensity Scale',
         jmaScale: 'JMA Seismic Intensity Scale',
         epicenter: 'Epicenter',
         hypocenterAlt: 'Epicenter',
@@ -223,6 +241,9 @@ export const resources = {
       },
       dashboard: {
         title: 'リアルタイム最大震度観測点',
+        tab: 'リアルタイム震度',
+        maxNationwide: '全国最大計測震度',
+        waiting: '受信待機中',
         autoRefresh: '1秒周期 自動更新',
         detecting: '揺れ検知中',
         normal: '平常時 / 微震',
@@ -233,6 +254,7 @@ export const resources = {
       },
       p2p: {
         title: '気象庁 発表地震情報',
+        tab: '地震情報',
         liveWs: 'リアルタイム受信中',
         selectHistory: '過去の地震履歴選択',
         unknownEpicenter: '震源地不明',
@@ -250,6 +272,8 @@ export const resources = {
         tsunamiUnknown: '津波の影響調査中',
         tsunamiWarning: '津波警報・注意報 発表中！',
         clickToFocus: 'クリックで地図移動',
+        focusEpicenter: '震源地にフォーカス',
+        empty: '地震情報はありません',
         scale: '震度 {{scale}}',
       },
       eew: {
@@ -263,10 +287,12 @@ export const resources = {
         pWaveRadius: 'P波 半径',
         sWaveRadius: 'S波 (主要動) 半径',
         originTime: '発生時刻',
+        focusEpicenter: '震源地へ地図移動',
         close: '閉じる',
       },
       legend: {
-        jmaScale: '気象庁 震度階級',
+        title: '凡例',
+        scaleTitle: '気象庁 震度階級',
         epicenter: '震源地 (Epicenter)',
         hypocenterAlt: '震央 (Epicenter)',
         obsPoint: '観測地点 (P2P 551)',

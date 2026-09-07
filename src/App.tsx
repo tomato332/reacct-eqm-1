@@ -22,11 +22,18 @@ import { TopDashboard } from './components/TopDashboard';
 import { InfoBadge } from './components/InfoBadge';
 import { P2PQuakeCard } from './components/P2PQuakeCard';
 
+import { useIsMobile } from './hooks/useIsMobile';
+import { MobileHeader } from './components/mobile/MobileHeader';
+import { MobileAlerts } from './components/mobile/MobileAlerts';
+import { MobileBottomSheet } from './components/mobile/MobileBottomSheet';
+import mobileStyles from './components/mobile/MobileView.module.css';
+
 import styles from './App.module.css';
 import { audioService } from './AudioService';
 
 export default function App() {
   useTranslation(); // Trigger re-render on language change
+  const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
@@ -121,14 +128,22 @@ export default function App() {
     } else {
       // kmoni (NIED) or yahoo -> reset camera to full Japan bounds
       if (mapRef.current) {
-        fitJapanBounds(mapRef.current, true);
+        fitJapanBounds(
+          mapRef.current,
+          true,
+          isMobile ? { top: 90, bottom: 80, left: 16, right: 16 } : undefined
+        );
       }
     }
   };
 
   const handleResetCamera = () => {
     if (mapRef.current) {
-      fitJapanBounds(mapRef.current, true);
+      fitJapanBounds(
+        mapRef.current,
+        true,
+        isMobile ? { top: 90, bottom: 80, left: 16, right: 16 } : undefined
+      );
     }
   };
 
@@ -399,54 +414,88 @@ export default function App() {
     <div className={`${styles.container} ${isDarkMode ? styles.dark : ''}`}>
       <div ref={containerRef} className={styles.map} />
 
-      <TopRightControls
-        dataSource={dataSource}
-        handleToggleDataSource={handleToggleDataSource}
-        handleResetCamera={handleResetCamera}
-        isDarkMode={isDarkMode}
-        setIsDarkMode={setIsDarkMode}
-      />
+      {isMobile ? (
+        <div className={mobileStyles.mobileRoot}>
+          <MobileHeader
+            dataSource={dataSource}
+            handleToggleDataSource={handleToggleDataSource}
+            handleResetCamera={handleResetCamera}
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+          />
 
-      <div className={styles.leftSidebar}>
-        <DetectionAlert
-          alertInfo={detectionAlert}
-          onDismiss={handleDismissDetection}
-          onFocusLocation={handleFocusEpicenter}
-        />
-
-        {fusionContext.state !== EEWState.IDLE && fusionContext.data && (
-          <EEWCard
-            eewContext={fusionContext}
+          <MobileAlerts
+            fusionContext={fusionContext}
             waveStats={waveStats}
             handleDismissEEW={handleDismissEEW}
+            detectionAlert={detectionAlert}
+            handleDismissDetection={handleDismissDetection}
+            onFocusEpicenter={handleFocusEpicenter}
           />
-        )}
 
-        <P2PQuakeCard
-          currentEvent={selectedP2PEvent}
-          historyEvents={p2pEvents}
-          onSelectEvent={handleSelectP2PEvent}
-          onFocusEpicenter={handleFocusEpicenter}
-          onFocusPoint={handleFocusPoint}
-          isCollapsed={isP2PCollapsed}
-          setIsCollapsed={setIsP2PCollapsed}
-          listOnly={dataSource !== 'p2pquake'}
-        />
-
-        {dataSource !== 'p2pquake' && (
-          <TopDashboard
-            isTopCollapsed={isTopCollapsed}
-            setIsTopCollapsed={setIsTopCollapsed}
+          <MobileBottomSheet
             dataSource={dataSource}
             topStations={topStations}
             handleSelectStation={handleSelectStation}
+            currentP2PEvent={selectedP2PEvent}
+            historyP2PEvents={p2pEvents}
+            onSelectP2PEvent={handleSelectP2PEvent}
+            onFocusEpicenter={handleFocusEpicenter}
+            onFocusPoint={handleFocusPoint}
           />
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <TopRightControls
+            dataSource={dataSource}
+            handleToggleDataSource={handleToggleDataSource}
+            handleResetCamera={handleResetCamera}
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+          />
 
-      {hoverInfo && eewContext.state === EEWState.IDLE && <InfoBadge hoverInfo={hoverInfo} />}
+          <div className={styles.leftSidebar}>
+            <DetectionAlert
+              alertInfo={detectionAlert}
+              onDismiss={handleDismissDetection}
+              onFocusLocation={handleFocusEpicenter}
+            />
 
-      <Legend dataSource={dataSource} />
+            {fusionContext.state !== EEWState.IDLE && fusionContext.data && (
+              <EEWCard
+                eewContext={fusionContext}
+                waveStats={waveStats}
+                handleDismissEEW={handleDismissEEW}
+              />
+            )}
+
+            <P2PQuakeCard
+              currentEvent={selectedP2PEvent}
+              historyEvents={p2pEvents}
+              onSelectEvent={handleSelectP2PEvent}
+              onFocusEpicenter={handleFocusEpicenter}
+              onFocusPoint={handleFocusPoint}
+              isCollapsed={isP2PCollapsed}
+              setIsCollapsed={setIsP2PCollapsed}
+              listOnly={dataSource !== 'p2pquake'}
+            />
+
+            {dataSource !== 'p2pquake' && (
+              <TopDashboard
+                isTopCollapsed={isTopCollapsed}
+                setIsTopCollapsed={setIsTopCollapsed}
+                dataSource={dataSource}
+                topStations={topStations}
+                handleSelectStation={handleSelectStation}
+              />
+            )}
+          </div>
+
+          {hoverInfo && eewContext.state === EEWState.IDLE && <InfoBadge hoverInfo={hoverInfo} />}
+
+          <Legend dataSource={dataSource} />
+        </>
+      )}
     </div>
   );
 }
