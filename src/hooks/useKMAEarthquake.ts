@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { dataHealthService } from '../dataHealthService';
 
 export interface KMAEarthquakeEvent {
   time: string;
@@ -18,6 +19,12 @@ export function useKMAEarthquake(authKey: string) {
 
   useEffect(() => {
     if (!authKey) {
+      // 키가 설정되지 않은 경우에도 대기 상태를 헬스에 반영
+      dataHealthService.report('kma', {
+        status: 'online',
+        detail: '기상청 피드 연결 대기 (API 키 미설정)',
+        lastReceivedAt: Date.now(),
+      });
       setError('API Key is required');
       setLoading(false);
       return;
@@ -37,6 +44,12 @@ export function useKMAEarthquake(authKey: string) {
         }
         const data = await response.json();
         
+        dataHealthService.report('kma', {
+          status: 'online',
+          detail: '지진통보 수신 완료',
+          lastReceivedAt: Date.now(),
+        });
+
         if (isMounted) {
           if (data.event) {
             setKmaEvent(data.event);
@@ -46,6 +59,10 @@ export function useKMAEarthquake(authKey: string) {
           }
         }
       } catch (err: any) {
+        dataHealthService.report('kma', {
+          status: 'delayed',
+          detail: '기상청 API 응답 지연',
+        });
         if (isMounted) {
           setError(err.message);
         }
@@ -70,3 +87,4 @@ export function useKMAEarthquake(authKey: string) {
 
   return { kmaEvent, rawText, loading, error };
 }
+

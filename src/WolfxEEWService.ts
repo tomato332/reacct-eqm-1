@@ -4,6 +4,8 @@
  * - HTTP Fallback: https://api.wolfx.jp/jma_eew.json
  */
 
+import { dataHealthService } from './dataHealthService';
+
 export interface WolfxEEWData {
   type?: string;
   Title?: string;
@@ -122,18 +124,24 @@ export class WolfxEEWService {
           if (isDestroyed) return;
           try {
             ws = new WebSocket('wss://ws-api.wolfx.jp/jma_eew');
-            ws.onopen = () => console.log('[Wolfx EEW Worker] WS 연결됨');
+            ws.onopen = () => {
+              self.postMessage({ type: 'WS_OPEN' });
+            };
             ws.onmessage = (e) => {
               try {
                 const data = JSON.parse(e.data);
                 self.postMessage({ type: 'WS_DATA', data });
               } catch(err) {}
             };
-            ws.onerror = () => {};
+            ws.onerror = () => {
+              self.postMessage({ type: 'WS_ERROR' });
+            };
             ws.onclose = () => {
+              self.postMessage({ type: 'WS_CLOSE' });
               if (!isDestroyed) setTimeout(initWS, 10000);
             };
           } catch(err) {
+            self.postMessage({ type: 'WS_ERROR' });
             if (!isDestroyed) setTimeout(initWS, 10000);
           }
         }
@@ -176,8 +184,31 @@ export class WolfxEEWService {
       
       this.worker.onmessage = (e) => {
         const { type, data } = e.data;
-        if (type === 'WS_DATA' || type === 'POLL_DATA') {
+        if (type === 'WS_OPEN') {
+          dataHealthService.report('wolfx', {
+            status: 'online',
+            detail: 'WebSocket 연결됨',
+            lastReceivedAt: Date.now(),
+          });
+        } else if (type === 'WS_DATA') {
+          dataHealthService.report('wolfx', {
+            status: 'online',
+            detail: 'WebSocket 실시간 수신',
+            lastReceivedAt: Date.now(),
+          });
           this.handleIncomingData(data);
+        } else if (type === 'POLL_DATA') {
+          dataHealthService.report('wolfx', {
+            status: 'online',
+            detail: 'HTTP 폴링 수신',
+            lastReceivedAt: Date.now(),
+          });
+          this.handleIncomingData(data);
+        } else if (type === 'WS_CLOSE') {
+          dataHealthService.report('wolfx', {
+            status: 'delayed',
+            detail: 'WebSocket 재연결 시도 중',
+          });
         }
       };
       

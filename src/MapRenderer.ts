@@ -8,6 +8,7 @@ import { getExactJindoColor } from './colorMap';
 import { fitJapanBounds } from './zoomUtils';
 import { P2PEarthquakeEvent, formatScaleJMA } from './P2PQuakeService';
 import { translatePrefecture, translateRegionName, formatObservationPointName } from './translateUtils';
+import { dataHealthService } from './dataHealthService';
 
 function isPointInRing(pt: [number, number], ring: [number, number][]): boolean {
   const x = pt[0], y = pt[1];
@@ -834,6 +835,12 @@ export class CleanVectorMapRenderer {
         if (!payload || !payload.intensities) return;
         const { source, intensities } = payload;
 
+        dataHealthService.report('kmoni', {
+          status: 'online',
+          detail: '실시간 진도 수신 (1초 주기)',
+          lastReceivedAt: Date.now(),
+        });
+
         if (source === 'kmoni' && (currentDataSource === 'kmoni' || currentDataSource === 'p2pquake')) {
           kmoniQuakeService.processKmoniParsedData(intensities, createDetectionCallbacks('kmoni'));
         } else if (source === 'yahoo' && currentDataSource === 'yahoo') {
@@ -856,6 +863,10 @@ export class CleanVectorMapRenderer {
             } catch {}
           };
           eventSource.onerror = () => {
+            dataHealthService.report('kmoni', {
+              status: 'delayed',
+              detail: 'SSE 재연결 시도 중 (REST 폴백)',
+            });
             if (eventSource) {
               eventSource.close();
               eventSource = null;

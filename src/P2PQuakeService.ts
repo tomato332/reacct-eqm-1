@@ -1,4 +1,5 @@
 import { StationPointMeta } from './KmoniService';
+import { dataHealthService } from './dataHealthService';
 
 export interface JMAStationItem {
   area?: { code?: string; name?: string; furigana?: string };
@@ -287,6 +288,11 @@ export class P2PQuakeService {
           this.listeners.forEach((cb) => cb(parsedList[0]));
         }
       }
+      dataHealthService.report('p2p', {
+        status: 'online',
+        detail: '히스토리 동기화 완료',
+        lastReceivedAt: Date.now(),
+      });
       return this.latestEvents;
     } catch {
       // Quiet fallback
@@ -313,9 +319,19 @@ export class P2PQuakeService {
 
       this.ws.onopen = () => {
         this.isWsConnected = true;
+        dataHealthService.report('p2p', {
+          status: 'online',
+          detail: 'WebSocket 연결됨',
+          lastReceivedAt: Date.now(),
+        });
       };
 
       this.ws.onmessage = (msg) => {
+        dataHealthService.report('p2p', {
+          status: 'online',
+          detail: '실시간 패킷 수신',
+          lastReceivedAt: Date.now(),
+        });
         try {
           const data = JSON.parse(msg.data);
           // Only handle Code 551 (Earthquake info)
@@ -334,10 +350,18 @@ export class P2PQuakeService {
       this.ws.onerror = () => {
         // Benign error event (e.g. 10m auto-disconnect or connection reset)
         this.isWsConnected = false;
+        dataHealthService.report('p2p', {
+          status: 'delayed',
+          detail: '재연결 준비 (폴백 동기화 활성)',
+        });
       };
 
       this.ws.onclose = () => {
         this.isWsConnected = false;
+        dataHealthService.report('p2p', {
+          status: 'delayed',
+          detail: 'WebSocket 재연결 대기 중',
+        });
         if (!this.isDestroyed) {
           if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
           this.reconnectTimer = window.setTimeout(() => {

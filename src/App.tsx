@@ -7,7 +7,7 @@ import { WolfxEEWService, WolfxEEWData, EEWContext, EEWState } from './WolfxEEWS
 import { P2PQuakeService, P2PEarthquakeEvent, P2PObservationPoint } from './P2PQuakeService';
 import { loadJmaTravelTimeTable } from './travelTime';
 import { BackgroundSyncService } from './backgroundSyncService';
-import { DataSourceType, HoverInfo, IGeoProvider, MapRendererController, DetectionAlertInfo } from './types';
+import { DataSourceType, HoverInfo, IGeoProvider, MapRendererController, DetectionAlertInfo, SystemAlertStatus } from './types';
 import { StaticGeoProvider, CleanVectorMapRenderer } from './MapRenderer';
 import { JAPAN_BOUNDS, fitJapanBounds } from './zoomUtils';
 import { useEEWWaves } from './hooks/useEEWWaves';
@@ -451,6 +451,21 @@ export default function App() {
             onSelectP2PEvent={handleSelectP2PEvent}
             onFocusEpicenter={handleFocusEpicenter}
             onFocusPoint={handleFocusPoint}
+            hasActiveAlert={fusionContext.state === EEWState.ACTIVE || !!detectionAlert}
+            alertStatus={
+              fusionContext.state === EEWState.ACTIVE
+                ? 'critical'
+                : detectionAlert
+                ? 'warning'
+                : 'normal'
+            }
+            alertTitle={
+              fusionContext.state === EEWState.ACTIVE
+                ? (fusionContext.data?.Hypocenter ? `${fusionContext.data.Hypocenter} 긴급지진속보` : undefined)
+                : detectionAlert
+                ? `${detectionAlert.location} 지진동 감지 (${detectionAlert.expectedIntensity})`
+                : undefined
+            }
           />
         </div>
       ) : (

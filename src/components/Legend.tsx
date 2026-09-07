@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DataSourceType } from '../types';
+import { SystemStatusCard } from './SystemStatusCard';
 import styles from '../App.module.css';
 import { Info } from 'lucide-react';
 
@@ -84,6 +85,10 @@ export const Legend: React.FC<LegendProps> = ({ dataSource }) => {
           )}
           <div className={styles.legendItem}>
             <span className={styles.colorJapan} /> {t('legend.japanIslands')}
+          </div>
+
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+            <SystemStatusCard defaultExpanded={false} />
           </div>
         </div>
       )}

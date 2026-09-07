@@ -4,6 +4,26 @@ import { P2PEarthquakeEvent } from './P2PQuakeService';
 
 export type DataSourceType = 'kmoni' | 'yahoo' | 'p2pquake';
 
+export type SourceHealthStatus = 'online' | 'delayed' | 'offline';
+
+export type HealthSourceId = 'wolfx' | 'p2p' | 'kmoni' | 'kma';
+
+export interface DataSourceHealth {
+  id: HealthSourceId;
+  name: string;
+  status: SourceHealthStatus;
+  lastReceivedAt: number | null;
+  detail?: string;
+  latencyMs?: number;
+}
+
+export type SystemAlertStatus =
+  | 'normal'
+  | 'detecting'
+  | 'warning'
+  | 'critical'
+  | 'offline';
+
 export interface HoverInfo {
   type: 'prefecture' | 'station' | 'p2p_point' | 'p2p_hypocenter';
   title: string;

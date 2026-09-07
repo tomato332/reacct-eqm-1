@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DataSourceType } from '../../types';
+import { DataSourceType, SystemAlertStatus } from '../../types';
 import { TopStationItem } from '../../QuakeDetectService';
 import { P2PEarthquakeEvent, P2PObservationPoint } from '../../P2PQuakeService';
 import { translateRegionName, translatePrefecture, formatObservationPointName } from '../../translateUtils';
@@ -31,6 +31,9 @@ interface MobileBottomSheetProps {
   onSelectP2PEvent: (e: P2PEarthquakeEvent) => void;
   onFocusEpicenter: (lat: number, lon: number) => void;
   onFocusPoint: (p: P2PObservationPoint) => void;
+  hasActiveAlert?: boolean;
+  alertStatus?: SystemAlertStatus;
+  alertTitle?: string;
 }
 
 export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
@@ -42,6 +45,9 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
   onSelectP2PEvent,
   onFocusEpicenter,
   onFocusPoint,
+  hasActiveAlert = false,
+  alertStatus,
+  alertTitle,
 }) => {
   const { t, i18n } = useTranslation();
   const currentLang = i18n.language;
@@ -397,8 +403,13 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
             {/* 탭 3: 상태 및 범례 안내 */}
             {activeTab === 'legend' && (
               <div className={styles.mobileLegendSection}>
-                {/* 1. 시스템 정상 상태 (평상시 상태 UI) */}
-                <SystemStatusCard />
+                {/* 1. 시스템 정상 상태 (실시간 헬스 모니터링 UI) */}
+                <SystemStatusCard
+                  hasActiveAlert={hasActiveAlert}
+                  alertStatus={alertStatus}
+                  alertTitle={alertTitle}
+                  defaultExpanded={true}
+                />
 
                 {/* 2. JMA 진도 계급 안내 */}
                 <div className={styles.metaTextMuted}>
