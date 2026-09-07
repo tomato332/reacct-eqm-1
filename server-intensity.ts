@@ -232,6 +232,9 @@ export class ServerIntensityAggregator {
     }
   }
 
+  private kmoniOptimalDelay = 2000;
+  private yahooOptimalDelay = 1000;
+
   private startPollingLoop() {
     let isRunning = false;
 
@@ -239,6 +242,7 @@ export class ServerIntensityAggregator {
       if (this.isDestroyed) return;
       if (isRunning) return;
       isRunning = true;
+      const startTime = Date.now();
       try {
         await Promise.allSettled([
           this.fetchAndParseKmoni(),
@@ -249,7 +253,9 @@ export class ServerIntensityAggregator {
       } finally {
         isRunning = false;
         if (!this.isDestroyed) {
-          this.timer = setTimeout(loop, 1000);
+          const elapsed = Date.now() - startTime;
+          const nextDelay = Math.max(50, 1000 - elapsed);
+          this.timer = setTimeout(loop, nextDelay);
         }
       }
     };
@@ -259,7 +265,11 @@ export class ServerIntensityAggregator {
   }
 
   private async fetchAndParseKmoni() {
-    const delays = [1000, 2000, 3000, 4000, 5000];
+    // 직전 성공 딜레이를 최우선으로 시도하고, 인접 딜레이를 우선 배치
+    const base = this.kmoniOptimalDelay;
+    const candidates = [base, base + 1000, base - 1000, 2000, 3000, 4000, 1000, 5000];
+    const delays = Array.from(new Set(candidates)).filter(d => d >= 1000 && d <= 6000);
+
     let buffer: Buffer | null = null;
     let finalTimeStr = '';
 
@@ -269,7 +279,7 @@ export class ServerIntensityAggregator {
 
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
+        const timeout = setTimeout(() => controller.abort(), 1800);
         const resp = await fetch(url, {
           signal: controller.signal,
           headers: {
@@ -283,6 +293,7 @@ export class ServerIntensityAggregator {
           const arrayBuffer = await resp.arrayBuffer();
           buffer = Buffer.from(arrayBuffer);
           finalTimeStr = timeStr;
+          this.kmoniOptimalDelay = delay; // 다음 루프 최적 딜레이 캐싱
           break;
         }
       } catch {}
@@ -338,7 +349,10 @@ export class ServerIntensityAggregator {
   }
 
   private async fetchYahooRealtime() {
-    const delays = [1000, 2000, 3000, 4000, 5000];
+    const base = this.yahooOptimalDelay;
+    const candidates = [base, base + 1000, base - 1000, 1000, 2000, 3000, 4000];
+    const delays = Array.from(new Set(candidates)).filter(d => d >= 1000 && d <= 5000);
+
     for (const delay of delays) {
       const targetTime = new Date(Date.now() - delay);
       const jst = new Date(targetTime.getTime() + (9 * 60 + targetTime.getTimezoneOffset()) * 60000);
@@ -354,7 +368,7 @@ export class ServerIntensityAggregator {
 
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
+        const timeout = setTimeout(() => controller.abort(), 1800);
         const resp = await fetch(yahooUrl, {
           signal: controller.signal,
           headers: {
@@ -367,6 +381,7 @@ export class ServerIntensityAggregator {
           const data = await resp.json();
           const intensityStr = data?.realTimeData?.intensity;
           if (intensityStr) {
+            this.yahooOptimalDelay = delay;
             const intensities: Record<string, number | null> = {};
             for (let i = 0; i < intensityStr.length; i++) {
               const charCode = intensityStr.charCodeAt(i);

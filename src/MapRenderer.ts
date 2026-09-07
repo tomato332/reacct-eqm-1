@@ -57,6 +57,32 @@ function findAreaFeature(lon: number, lat: number, pref: string, name: string, f
   return null;
 }
 
+function computeBBox(geom: any): [number, number, number, number] {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const processRing = (ring: [number, number][]) => {
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  };
+  if (geom.type === 'Polygon' && Array.isArray(geom.coordinates)) {
+    for (const ring of geom.coordinates) {
+      if (Array.isArray(ring)) processRing(ring);
+    }
+  } else if (geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates)) {
+    for (const poly of geom.coordinates) {
+      if (Array.isArray(poly)) {
+        for (const ring of poly) {
+          if (Array.isArray(ring)) processRing(ring);
+        }
+      }
+    }
+  }
+  return [minX, minY, maxX, maxY];
+}
+
 export class StaticGeoProvider implements IGeoProvider {
   getWorldGeoUrl(): string {
     return '/world.json';
@@ -1011,7 +1037,7 @@ export class CleanVectorMapRenderer {
           });
         }
 
-        // 3. 지역(구역)별 진도 채색 GeoJSON 생성 (AreaForecastLocalE_GIS)
+        // 3. 지역(세분구역)별 진도 채색 GeoJSON 생성 (AreaForecastLocalE_GIS)
         if (areasSource && japanGeojson && Array.isArray(japanGeojson.features)) {
           const areaScaleMap = new Map<string, number>();
 
@@ -1035,7 +1061,6 @@ export class CleanVectorMapRenderer {
           // raw.areas (구역 단위 발령 데이터) 처리
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const rawAreas = (event.raw as any)?.areas;
-          console.log("areaScaleMap size:", areaScaleMap.size);
           if (Array.isArray(rawAreas)) {
             for (const ar of rawAreas) {
               const matchedFeature = findAreaFeature(0, 0, ar.pref || '', ar.name || '', japanGeojson.features);
@@ -1068,7 +1093,7 @@ export class CleanVectorMapRenderer {
                   scale: scale,
                   scaleStr: scaleInfo.text,
                   color: scaleInfo.color, // 진도별 색상 매핑
-                  opacity: isEarthquakeTab ? 0.88 : 0.65
+                  opacity: isEarthquakeTab ? 0.85 : 0.75
                 }
               });
             } else {

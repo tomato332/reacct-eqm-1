@@ -103,6 +103,7 @@
   overflow-x: hidden;
   padding-bottom: 16px;
   scrollbar-width: thin;
+  box-sizing: border-box;
 }
 
 .leftSidebar::-webkit-scrollbar {
@@ -122,6 +123,7 @@
   right: auto !important;
   width: 100% !important;
   margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* ==========================================================================
@@ -342,6 +344,7 @@
   border-radius: 50%;
   background-color: #10b981;
   box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  flex-shrink: 0;
 }
 
 .dashboardToggleBtn {
@@ -465,6 +468,7 @@
   color: #ffffff;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .jindoValue {
@@ -496,6 +500,7 @@
 
 .collapsedDashboardBadge {
   width: 100%;
+  box-sizing: border-box;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -514,6 +519,15 @@
 
 .collapsedDashboardBadge:hover {
   background-color: var(--surface-hover);
+}
+
+.collapsedDashboardTitle {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .loadingPlaceholder {
@@ -840,6 +854,7 @@
   border-radius: 50%;
   background-color: #10b981;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .p2pMainTitle {
@@ -1226,6 +1241,7 @@
 /* Collapsed P2P Badge */
 .collapsedP2PBadge {
   width: 100%;
+  box-sizing: border-box;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1252,6 +1268,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
+  min-width: 0;
 }
 
 .p2pScaleBadge {
@@ -1261,6 +1278,7 @@
   font-weight: 700;
   color: #ffffff;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================

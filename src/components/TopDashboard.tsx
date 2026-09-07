@@ -57,7 +57,7 @@ export const TopDashboard: React.FC<TopDashboardProps> = ({
         title={titleText}
       >
         <span className={styles.liveSignalDot} />
-        <span>{titleText}</span>
+        <span className={styles.collapsedDashboardTitle}>{titleText}</span>
         {topStations.length > 0 && (
           <span className={styles.jindoBadge} style={{ backgroundColor: topStations[0].color }}>
             1: {topStations[0].jindoFormatted}
