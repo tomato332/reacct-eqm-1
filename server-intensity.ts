@@ -49,6 +49,49 @@ function getIntensityFromRGB(r: number, g: number, b: number): number | null {
   return null;
 }
 
+// kmoni jma_s GIF의 투영 상수 (1628개 관측소 Point 잔차 분석으로 확정).
+// 본토와 남서제도(오키나와·아마미)는 동일 축척의 등간격 투영이지만 인셋 박스 원점이 다르다.
+const MAIN_PROJECTION = {
+  lonPerPx: 0.0491300, lon0: 128.6268,
+  latPerPx: -0.0407483, lat0: 46.2400
+};
+const INSET_PROJECTION = {
+  lonPerPx: 0.0491574, lon0: 122.5219,
+  latPerPx: -0.0405859, lat0: 32.0293
+};
+// 남서제도 인셋 판정 (본토 최남단 관측소 屋久 lon~130.4와의 경계)
+function isInInsetRegion(lon: number, lat: number): boolean {
+  return lon < 130 && lat < 30.5;
+}
+
+/**
+ * 관측소 픽셀의 진도 유효성 검사 (오탐 방지).
+ * 실제 진도 표시는 지도 위 여러 픽셀 뭉치로 그려지므로, Point 주변 3×3에서
+ * 중심과 비슷한 색이 3픽셀 이상 있어야 인정한다. 고립된 밝은 점(노이즈 1px)은 기각.
+ */
+function validateSpatialSupport(rgba: Uint8Array, width: number, height: number, cx: number, cy: number): boolean {
+  const ci = (cy * width + cx) * 4;
+  const cr = rgba[ci], cg = rgba[ci + 1], cb = rgba[ci + 2];
+
+  let support = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const px = cx + dx, py = cy + dy;
+      if (px < 0 || px >= width || py < 0 || py >= height) continue;
+      const idx = (py * width + px) * 4;
+      if (rgba[idx + 3] === 0) continue;
+      if (dx === 0 && dy === 0) {
+        support++;
+        continue;
+      }
+      const dr = rgba[idx] - cr, dg = rgba[idx + 1] - cg, db = rgba[idx + 2] - cb;
+      // 진도 팔레트 0.1스텝 ≈ RGB 7~15 단위이므로 유사 픽셀 판정 임계로 6000(distSq) 사용
+      if (dr * dr + dg * dg + db * db < 6000) support++;
+    }
+  }
+  return support >= 3;
+}
+
 function getKmoniShindoUrl(now: Date): { url: string; timeStr: string } {
   const jst = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60000);
   const yyyy = jst.getFullYear();
@@ -88,9 +131,10 @@ export class ServerIntensityAggregator {
   }
 
   /**
-   * 최신 kmoni GIF에 감지 관측소 위치에 빨간 사각형을 그려 GIF로 재인코딩한다.
+   * 최신 kmoni GIF 위에 사이트의 감지 격자(updateDetectedEvents의 셀 폴리곤)를
+   * 동일하게 그려 GIF로 재인코딩한다.
    */
-  private buildMapGif(topCode: string | null): Buffer | null {
+  private buildMapGif(): Buffer | null {
     if (!this.lastKmoniGif) return null;
     try {
       const reader = new GifReader(this.lastKmoniGif);
@@ -99,24 +143,6 @@ export class ServerIntensityAggregator {
       const rgba = new Uint8Array(width * height * 4);
       reader.decodeAndBlitFrameRGBA(0, rgba);
 
-      const stn = topCode ? this.stations.find(s => s.Code === topCode) : null;
-      if (stn?.Point) {
-        const { x, y } = stn.Point;
-        const radius = 8;
-        const thickness = 2;
-        for (let dy = -radius; dy <= radius; dy++) {
-          for (let dx = -radius; dx <= radius; dx++) {
-            const ring = Math.max(Math.abs(dx), Math.abs(dy));
-            if (ring <= radius - thickness) continue;
-            const px = x + dx;
-            const py = y + dy;
-            if (px < 0 || px >= width || py < 0 || py >= height) continue;
-            const i = (py * width + px) * 4;
-            rgba[i] = 255; rgba[i + 1] = 0; rgba[i + 2] = 0; rgba[i + 3] = 255;
-          }
-        }
-      }
-
       // 투명 픽셀(바다/배경)을 지도 느낌의 옅은 파란색으로 채운다
       for (let p = 0; p < width * height; p++) {
         if (rgba[p * 4 + 3] === 0) {
@@ -124,6 +150,48 @@ export class ServerIntensityAggregator {
           rgba[p * 4 + 1] = 210;
           rgba[p * 4 + 2] = 234;
           rgba[p * 4 + 3] = 255;
+        }
+      }
+
+      // 사이트 감지 격자를 GIF 픽셀 좌표로 변환해 그린다.
+      // kmoni 지도는 등간격 투영(본토/남서제도 인셋 두 개)이므로 분석으로 확정된 고정 상수를 사용한다.
+      // ※ 전 관측소 일괄 선형회귀는 인셋 관측소가 섞여 최대 6° 왜곡이 생기므로 쓰지 않는다.
+      const detectedFeatures = this.detectService?.lastDetectedGeojson?.features ?? [];
+      if (detectedFeatures.length > 0) {
+        const lonToX = (lon: number, lat: number) => {
+          const p = isInInsetRegion(lon, lat) ? INSET_PROJECTION : MAIN_PROJECTION;
+          return Math.round((lon - p.lon0) / p.lonPerPx);
+        };
+        const latToY = (lon: number, lat: number) => {
+          const p = isInInsetRegion(lon, lat) ? INSET_PROJECTION : MAIN_PROJECTION;
+          return Math.round((lat - p.lat0) / p.latPerPx);
+        };
+
+        const plot = (px: number, py: number) => {
+          for (let oy = 0; oy < 2; oy++) {
+            for (let ox = 0; ox < 2; ox++) {
+              const px2 = px + ox;
+              const py2 = py + oy;
+              if (px2 < 0 || px2 >= width || py2 < 0 || py2 >= height) continue;
+              const i = (py2 * width + px2) * 4;
+              rgba[i] = 255; rgba[i + 1] = 0; rgba[i + 2] = 0; rgba[i + 3] = 255;
+            }
+          }
+        };
+        const drawEdge = (lon1: number, lat1: number, lon2: number, lat2: number) => {
+          const x1 = lonToX(lon1, lat1), y1 = latToY(lon1, lat1);
+          const x2 = lonToX(lon2, lat2), y2 = latToY(lon2, lat2);
+          const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), 1);
+          for (let s = 0; s <= steps; s++) {
+            plot(Math.round(x1 + (x2 - x1) * s / steps), Math.round(y1 + (y2 - y1) * s / steps));
+          }
+        };
+        for (const f of detectedFeatures) {
+          const ring = f?.geometry?.coordinates?.[0];
+          if (!Array.isArray(ring)) continue;
+          for (let i = 0; i < ring.length - 1; i++) {
+            drawEdge(ring[i][0], ring[i][1], ring[i + 1][0], ring[i + 1][1]);
+          }
         }
       }
 
@@ -235,8 +303,8 @@ export class ServerIntensityAggregator {
       timestamp: new Date().toISOString()
     };
 
-    // 감지 위치가 표시된 최신 실시간 지도를 첨부
-    const mapGif = this.buildMapGif(topStation ? topStation.code : null);
+    // 사이트 감지 격자가 표시된 최신 실시간 지도를 첨부
+    const mapGif = this.buildMapGif();
     if (mapGif) {
       embed.image = { url: 'attachment://map.gif' };
     }
@@ -448,7 +516,9 @@ export class ServerIntensityAggregator {
           continue;
         }
 
-        intensities[stn.Code] = getIntensityFromRGB(r, g, b);
+        const jindo = getIntensityFromRGB(r, g, b);
+        // 고립 노이즈 픽셀 기각: 3×3 이웃 지원이 없으면 무효
+        intensities[stn.Code] = jindo !== null && validateSpatialSupport(rgba, width, height, x, y) ? jindo : null;
       }
 
       this.broadcast({

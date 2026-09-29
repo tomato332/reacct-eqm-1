@@ -44,6 +44,8 @@ export class QuakeDetectService {
   geojson: any = null;
   detectEnabled = true; // 강제 활성화
   private lastDebugLog = 0; // 임시 진단용
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  lastDetectedGeojson: any = null; // 사이트 감지 격자(셀 폴리곤) 최신 상태 - 웹훅 지도 표시용
 
   estEpi: [number, number] | null = null;
   estOrigin: number | null = null;
@@ -544,6 +546,7 @@ export class QuakeDetectService {
       type: 'FeatureCollection',
       features: detectedFeatures
     };
+    this.lastDetectedGeojson = detectedGeojson;
 
     const hasGrids = detectedFeatures.length > 0;
     if (hasGrids) {
