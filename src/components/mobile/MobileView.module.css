@@ -989,6 +989,12 @@
   font-size: 13px;
   font-weight: 700;
   min-width: 0;
+  /* 좁은 폭에서 상태 텍스트가 글자 단위로 세로 줄바꿈되지 않도록 방지 */
+  flex-shrink: 0;
+}
+
+.systemStatusTitle > span:last-child {
+  white-space: nowrap;
 }
 
 .statusNormal {
@@ -1061,6 +1067,10 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  /* 상태 텍스트를 우선하고, 남는 폭이 적을 때는 말줄임으로 축소 */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .statusSummaryNotice {
@@ -1147,6 +1157,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  /* 뱃지가 줄바꿈되지 않고 옆으로 밀릴 수 있도록 이름 쪽이 먼저 축소된다 */
+  min-width: 0;
+}
+
+.sourceItemLeft > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sourceItemStatusBadge {
@@ -1157,6 +1175,9 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  /* 상태 문구("실시간 연결 · 방금 전")가 중간에 줄바꿈되지 않도록 방지 */
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .statusBadgeOnline {

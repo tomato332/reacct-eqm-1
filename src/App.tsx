@@ -94,14 +94,13 @@ export default function App() {
     }
   }, [eewContext]);
 
+  // 흔들림 감지(격자) 발생 시에만 경고음 재생.
+  // ※ topStations 갱신마다 진도만 보고 재생하던 이전 로직은 감지가 없어도 소리가 나는 원인이었다.
   useEffect(() => {
-    if (topStations.length > 0) {
-      const maxInt = topStations[0].intensity;
-      if (maxInt >= 1.0) {
-        audioService.playUpdateBeep(maxInt);
-      }
+    if (detectionAlert) {
+      audioService.playUpdateBeep(Math.max(detectionAlert.jindo, 1.0));
     }
-  }, [topStations]);
+  }, [detectionAlert]);
 
   const handleToggleDataSource = (source: DataSourceType) => {
     setDataSource(source);

@@ -423,6 +423,12 @@ export class QuakeDetectService {
         }
       }
       
+      // 감지 격자(lastDetectedGeojson)를 먼저 확정해야,
+      // 이후 onSoundTriggered/onNewEventDetected 콜백에서 웹훅 지도에 빨간 네모칸이 그려진다.
+      if (detectedUpdated) {
+        this.updateDetectedEvents(callbacks?.onDetectedUpdated, callbacks?.onEventsFinished);
+      }
+
       if (soundJindoToPlay > -3 && callbacks?.onSoundTriggered) {
         callbacks.onSoundTriggered(soundJindoToPlay, getJindoString(soundJindoToPlay));
       }
@@ -447,11 +453,7 @@ export class QuakeDetectService {
     if (updated && callbacks?.onPointsUpdated) {
       callbacks.onPointsUpdated(this.geojson);
     }
-    
-    if (detectedUpdated) {
-      this.updateDetectedEvents(callbacks?.onDetectedUpdated, callbacks?.onEventsFinished);
-    }
-    
+
     this.checkExpirationTick(Date.now(), callbacks?.onDetectedUpdated, callbacks?.onEventsFinished);
   }
 

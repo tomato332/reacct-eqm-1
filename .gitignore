@@ -6,3 +6,4 @@ coverage/
 *.log
 .env*
 !.env.example
+TODO-ANIMATED-GIF-WEBHOOK.md
