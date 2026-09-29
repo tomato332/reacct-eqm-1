@@ -1,6 +1,6 @@
 import { useEffect, useState, MutableRefObject } from 'react';
 import { WolfxEEWService, EEWContext, EEWState } from '../WolfxEEWService';
-import { getWaveSurfaceRadius, getMaxWaveDistanceKm } from '../travelTime';
+import { getWaveSurfaceRadius } from '../travelTime';
 import { buildWaveGeoJSON, buildEpicenterGeoJSON } from '../geoUtils';
 import { WaveStats } from '../types';
 
@@ -54,22 +54,24 @@ export function useEEWWaves({ mapRef, mapLoaded, eewContext, eewServiceRef }: Us
       const originTs = activeEEW.originTimestamp || now;
       const elapsedSec = Math.max(0, (now - originTs) / 1000);
       const depthKm = Math.max(0, activeEEW.Depth || 10);
-      const magnitude = activeEEW.Magunitude || 3.5;
+      // const magnitude = activeEEW.Magunitude || 3.5; // [주석처리] 링 소멸 로직 비활성화로 미사용
 
-      // 규모 및 깊이에 따른 최대 도달 거리 (km)
-      const maxDistanceKm = getMaxWaveDistanceKm(magnitude, depthKm);
+      // [주석처리] 규모/깊이 기반 최대 도달 거리로 링을 강제로 소멸시키는 로직.
+      // S파만 덩그러니 남는 문제(링이 규모·깊이 감쇠 거리에서 사라짐)로 인해 비활성화함.
+      // 파동은 300초 절대 안전 제한에 도달할 때까지 계속 확장된다.
+      // const maxDistanceKm = getMaxWaveDistanceKm(magnitude, depthKm);
 
       let pRadius = getWaveSurfaceRadius(elapsedSec, depthKm, 'P');
       let sRadius = getWaveSurfaceRadius(elapsedSec, depthKm, 'S');
 
-      // P파가 최대 감쇠 거리를 넘어서면 P파 링 제거 (반경 0 처리)
-      if (pRadius > maxDistanceKm * 1.15) {
-        pRadius = 0;
-      }
-      // S파가 최대 감쇠 거리를 넘어서면 S파 링 제거
-      if (sRadius > maxDistanceKm) {
-        sRadius = 0;
-      }
+      // [주석처리] P파가 최대 감쇠 거리를 넘어서면 P파 링 제거 (반경 0 처리)
+      // if (pRadius > maxDistanceKm * 1.15) {
+      //   pRadius = 0;
+      // }
+      // [주석처리] S파가 최대 감쇠 거리를 넘어서면 S파 링 제거
+      // if (sRadius > maxDistanceKm) {
+      //   sRadius = 0;
+      // }
 
       const center: [number, number] = [activeEEW.Longitude, activeEEW.Latitude];
       const waveGeoJSON = buildWaveGeoJSON(center, pRadius, sRadius);
@@ -94,11 +96,12 @@ export function useEEWWaves({ mapRef, mapLoaded, eewContext, eewServiceRef }: Us
         sRadius: Math.round(sRadius)
       });
 
-      // P파와 S파 모두 최대 도달 거리에 도달해 소멸되었거나, 절대 안전 제한 시간(300초) 도달 시 종료
-      const rawSRadius = getWaveSurfaceRadius(elapsedSec, depthKm, 'S');
-      const isWavesFinished = rawSRadius >= maxDistanceKm;
+      // [주석처리] P파와 S파 모두 최대 도달 거리에 도달해 소멸되었는지 검사하는 로직.
+      // 링 강제 소멸을 비활성화했으므로 절대 안전 제한 시간(300초)만으로 종료한다.
+      // const rawSRadius = getWaveSurfaceRadius(elapsedSec, depthKm, 'S');
+      // const isWavesFinished = rawSRadius >= maxDistanceKm;
 
-      if (isWavesFinished || elapsedSec > 300) {
+      if (elapsedSec > 300) {
         if (eewServiceRef.current) {
           eewServiceRef.current.clearEEW();
         }
