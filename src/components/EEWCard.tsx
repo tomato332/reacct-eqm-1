@@ -83,14 +83,27 @@ export const EEWCard: React.FC<EEWCardProps> = ({ eewContext, waveStats, handleD
               <span className={styles.pWaveBadge}>
                 <span className={styles.waveDotP} /> {t('eew.pWaveRadius')}
               </span>
-              <span>{waveStats.pRadius} km</span>
+              <span>
+                {waveStats.pRadius} km
+                {waveStats.pArrivalSec !== null && (
+                  <span className={styles.waveArrival}> · {waveStats.pArrivalSec}초 후 도달</span>
+                )}
+              </span>
             </div>
             <div className={styles.waveRow}>
               <span className={styles.sWaveBadge}>
                 <span className={styles.waveDotS} /> {t('eew.sWaveRadius')}
               </span>
-              <span>{waveStats.sRadius} km</span>
+              <span>
+                {waveStats.sRadius} km
+                {waveStats.sArrivalSec !== null ? (
+                  <span className={styles.waveArrival}> · {waveStats.sArrivalSec}초 후 도달</span>
+                ) : (
+                  <span className={styles.waveArrival}> · 도달</span>
+                )}
+              </span>
             </div>
+            <div className={styles.waveArrivalNote}>잔여 시간은 지도 화면 중심 기준</div>
           </div>
         )}
         

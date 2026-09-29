@@ -1,6 +1,7 @@
 import { useEffect, useState, MutableRefObject } from 'react';
 import { WolfxEEWService, EEWContext, EEWState } from '../WolfxEEWService';
-import { getWaveSurfaceRadius } from '../travelTime';
+import { getWaveSurfaceRadius, getJmaTravelTime } from '../travelTime';
+import { haversineDistance } from '../utils';
 import { buildWaveGeoJSON, buildEpicenterGeoJSON } from '../geoUtils';
 import { WaveStats } from '../types';
 
@@ -16,7 +17,9 @@ export function useEEWWaves({ mapRef, mapLoaded, eewContext, eewServiceRef }: Us
   const [waveStats, setWaveStats] = useState<WaveStats>({
     elapsedSec: 0,
     pRadius: 0,
-    sRadius: 0
+    sRadius: 0,
+    pArrivalSec: null,
+    sArrivalSec: null
   });
 
   useEffect(() => {
@@ -93,7 +96,25 @@ export function useEEWWaves({ mapRef, mapLoaded, eewContext, eewServiceRef }: Us
       setWaveStats({
         elapsedSec: Math.floor(elapsedSec),
         pRadius: Math.round(pRadius),
-        sRadius: Math.round(sRadius)
+        sRadius: Math.round(sRadius),
+        // 지도 화면 중심이 파동의 어느 위치에 있는지 → 도달 잔여 시간
+        ...(() => {
+          try {
+            const mapCenter = map.getCenter();
+            const distKm = haversineDistance(
+              activeEEW.Longitude!, activeEEW.Latitude!,
+              mapCenter.lng, mapCenter.lat
+            );
+            const travel = getJmaTravelTime(distKm, depthKm);
+            const fmt = (t: number) => {
+              const remain = Math.round(t - elapsedSec);
+              return remain > 0 ? remain : null;
+            };
+            return { pArrivalSec: fmt(travel.pTime), sArrivalSec: fmt(travel.sTime) };
+          } catch {
+            return { pArrivalSec: null, sArrivalSec: null };
+          }
+        })()
       });
 
       // [주석처리] P파와 S파 모두 최대 도달 거리에 도달해 소멸되었는지 검사하는 로직.

@@ -858,6 +858,30 @@
   pointer-events: auto;
 }
 
+/* 감지 알림 15초 유지 타이머 진행바 */
+.mobileDetectTimerTrack {
+  height: 3px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.mobileDetectTimerFill {
+  height: 100%;
+  animation: mobileDetectTimer 15s linear forwards;
+}
+
+@keyframes mobileDetectTimer {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* 모바일 EEW 파동 잔여 시간 안내 문구 */
+.mobileEewArrivalNote {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 3px;
+}
+
 .mobileDetectHeader {
   background-color: var(--accent-amber, #d97706);
   color: #ffffff;

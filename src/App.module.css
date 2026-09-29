@@ -701,6 +701,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 파동 도달 잔여 시간 ("~초 후 도달") */
+.waveArrival {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.waveArrivalNote {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
 .pWaveBadge {
   display: inline-flex;
   align-items: center;

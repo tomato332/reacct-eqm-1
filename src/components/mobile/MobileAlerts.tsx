@@ -82,10 +82,17 @@ export const MobileAlerts: React.FC<MobileAlertsProps> = ({
             {showTechDetails && (
               <div className={styles.mobileEewTechArea}>
                 <div className={styles.mobileEewWaveRow}>
-                  <span className={styles.waveP}>P: {waveStats.pRadius}km</span>
-                  <span className={styles.waveS}>S: {waveStats.sRadius}km</span>
+                  <span className={styles.waveP}>
+                    P: {waveStats.pRadius}km
+                    {waveStats.pArrivalSec !== null && ` · ${waveStats.pArrivalSec}초`}
+                  </span>
+                  <span className={styles.waveS}>
+                    S: {waveStats.sRadius}km
+                    {waveStats.sArrivalSec !== null ? ` · ${waveStats.sArrivalSec}초` : ' · 도달'}
+                  </span>
                   <span>깊이: {eewData.Depth ?? '-'}km</span>
                 </div>
+                <div className={styles.mobileEewArrivalNote}>잔여 시간은 지도 화면 중심 기준</div>
 
                 {eewData.Latitude && eewData.Longitude && (
                   <button
@@ -146,6 +153,14 @@ export const MobileAlerts: React.FC<MobileAlertsProps> = ({
                 <span>{t('detectAlert.focusMap') || '감지 위치로 이동'}</span>
               </button>
             )}
+          </div>
+
+          {/* 15초 유지 타이머 진행바 (timestamp를 key로 사용해 알림 갱신 시 재시작) */}
+          <div className={styles.mobileDetectTimerTrack} key={detectionAlert.timestamp}>
+            <div
+              className={styles.mobileDetectTimerFill}
+              style={{ backgroundColor: detectionAlert.color || '#ef4444' }}
+            />
           </div>
         </div>
       )}

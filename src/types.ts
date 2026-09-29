@@ -52,6 +52,9 @@ export interface WaveStats {
   elapsedSec: number;
   pRadius: number;
   sRadius: number;
+  // 지도 화면 중심까지의 파 도달 잔여 시간(초). null = 이미 도달했거나 계산 불가
+  pArrivalSec: number | null;
+  sArrivalSec: number | null;
 }
 
 export interface DetectionAlertInfo {
