@@ -43,6 +43,7 @@ export class QuakeDetectService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   geojson: any = null;
   detectEnabled = true; // 강제 활성화
+  private lastDebugLog = 0; // 임시 진단용
 
   estEpi: [number, number] | null = null;
   estOrigin: number | null = null;
@@ -327,7 +328,17 @@ export class QuakeDetectService {
     // 2. 핵심 지진 감지 알고리즘
     if (this.detectEnabled) {
       const stations = Array.from(this.stationsState.values());
-      
+
+      // 임시 진단: 60초마다 감지기가 보고 있는 값의 분포를 기록
+      const nowMs = Date.now();
+      if (nowMs - this.lastDebugLog > 60000) {
+        this.lastDebugLog = nowMs;
+        const withJindo = stations.filter(s => s.jindo !== null);
+        const maxJindo = withJindo.reduce((m, s) => Math.max(m, s.jindo ?? -999), -999);
+        const maxDeltaSum = stations.reduce((m, s) => Math.max(m, s.deltaSum), -999);
+        console.log(`[Detect] 진단: 데이터=${this.geojson ? 'OK' : 'geojson 없음!'} 값있음=${withJindo.length}/${stations.length} 최대진도=${maxJindo.toFixed(2)} 최대deltaSum=${maxDeltaSum.toFixed(2)}`);
+      }
+
       const getLevel = (jVal: number | null) => {
         if (jVal === null) return 0;
         if (jVal < -1.0) return 1;

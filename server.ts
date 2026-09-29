@@ -4,7 +4,6 @@ import { resolve } from "path";
 import fs from "fs";
 import https from "https";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { ServerIntensityAggregator } from "./server-intensity";
@@ -233,20 +232,32 @@ export function createApp() {
 export async function startServer() {
   const app = createApp();
 
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
+  // dist 정적 서빙 + SPA 폴백
+  const serveDist = () => {
     const distPath = resolve(process.cwd(), 'dist');
     app.use(express.static(distPath));
     // Support standard Express v4/v5 SPA fallback
     app.get('*', (req, res) => {
       res.sendFile(resolve(distPath, 'index.html'));
     });
+  };
+
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== "production") {
+    // vite는 개발 전용이라 번들에 포함하지 않는다(--external:vite). 설치돼 있지 않으면 정적 서빙으로 폴백.
+    try {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } catch {
+      console.warn("[startServer] vite를 로드할 수 없어 dist 정적 서빙으로 폴백합니다. (개발 시엔 pnpm install 필요)");
+      serveDist();
+    }
+  } else {
+    serveDist();
   }
 
   /**

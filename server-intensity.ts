@@ -2,7 +2,7 @@ import { INTENSITY_COLORS } from './src/colorMap';
 import { QuakeDetectService } from './src/QuakeDetectService';
 import fs from 'fs';
 import path from 'path';
-import { GifReader } from 'omggif';
+import { GifReader, GifWriter } from 'omggif';
 
 export interface StationPointMeta {
   Type?: number;
@@ -78,12 +78,92 @@ export class ServerIntensityAggregator {
   // 백엔드 감지기 인스턴스 (웹훅 발송용)
   private detectService: QuakeDetectService | null = null;
   private webhookCooldown = 0;
+  private lastKmoniGif: Buffer | null = null; // 웹훅 지도 첨부용
 
   constructor() {
     this.loadStationList();
     this.startPollingLoop();
     this.detectService = new QuakeDetectService();
     this.detectService.initKmoniStations(this.stations);
+  }
+
+  /**
+   * 최신 kmoni GIF에 감지 관측소 위치에 빨간 사각형을 그려 GIF로 재인코딩한다.
+   */
+  private buildMapGif(topCode: string | null): Buffer | null {
+    if (!this.lastKmoniGif) return null;
+    try {
+      const reader = new GifReader(this.lastKmoniGif);
+      const width = reader.width;
+      const height = reader.height;
+      const rgba = new Uint8Array(width * height * 4);
+      reader.decodeAndBlitFrameRGBA(0, rgba);
+
+      const stn = topCode ? this.stations.find(s => s.Code === topCode) : null;
+      if (stn?.Point) {
+        const { x, y } = stn.Point;
+        const radius = 8;
+        const thickness = 2;
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const ring = Math.max(Math.abs(dx), Math.abs(dy));
+            if (ring <= radius - thickness) continue;
+            const px = x + dx;
+            const py = y + dy;
+            if (px < 0 || px >= width || py < 0 || py >= height) continue;
+            const i = (py * width + px) * 4;
+            rgba[i] = 255; rgba[i + 1] = 0; rgba[i + 2] = 0; rgba[i + 3] = 255;
+          }
+        }
+      }
+
+      // 투명 픽셀(바다/배경)을 지도 느낌의 옅은 파란색으로 채운다
+      for (let p = 0; p < width * height; p++) {
+        if (rgba[p * 4 + 3] === 0) {
+          rgba[p * 4] = 174;
+          rgba[p * 4 + 1] = 210;
+          rgba[p * 4 + 2] = 234;
+          rgba[p * 4 + 3] = 255;
+        }
+      }
+
+      // RGBA -> 팔레트 인덱스 (색상 수가 256을 넘으면 채널을 잘라가며 양자화)
+      let shift = 0;
+      let palette: number[] = [];
+      let indices = new Uint8Array(width * height);
+      for (;;) {
+        const map = new Map<number, number>();
+        indices = new Uint8Array(width * height);
+        for (let p = 0; p < width * height; p++) {
+          const key = ((rgba[p * 4] >> shift) << 16) | ((rgba[p * 4 + 1] >> shift) << 8) | (rgba[p * 4 + 2] >> shift);
+          let idx = map.get(key);
+          if (idx === undefined) {
+            idx = map.size;
+            map.set(key, idx);
+          }
+          indices[p] = idx;
+        }
+        if (map.size <= 256) {
+          palette = [...map.keys()];
+          break;
+        }
+        shift++;
+      }
+
+      let palSize = 2;
+      while (palSize < palette.length) palSize <<= 1;
+      const pal = [...palette];
+      while (pal.length < palSize) pal.push(0);
+
+      const outBuf = new Uint8Array(width * height + 768 + 4096);
+      const writer = new GifWriter(outBuf as any, width, height, { palette: pal } as any);
+      writer.addFrame(0, 0, width, height, indices, { palette: pal } as any);
+      const len = writer.end();
+      return Buffer.from(outBuf.subarray(0, len));
+    } catch (err) {
+      console.error('[Webhook] 지도 이미지 생성 실패:', err);
+      return null;
+    }
   }
 
   private async triggerWebhook(source: string, isNewEvent: boolean = false) {
@@ -97,6 +177,7 @@ export class ServerIntensityAggregator {
 
     const topStations = this.detectService ? this.detectService.getTopStations(1) : [];
     const maxJindo = topStations.length > 0 ? topStations[0].jindo : null;
+    const topStation = topStations.length > 0 ? topStations[0] : null;
     
     let jindoStr = '알 수 없음';
     let r = 148, g = 163, b = 184; // Fallback gray
@@ -135,6 +216,11 @@ export class ServerIntensityAggregator {
       description: isNewEvent ? "새로운 흔들림이 감지되었습니다." : "흔들림 진도가 업데이트 되었습니다.",
       color: colorInt,
       fields: [
+        ...(topStation ? [{
+          name: "감지 격자 관측소",
+          value: `${topStation.region} ${topStation.name} ${topStation.jindoStr}`,
+          inline: false
+        }] : []),
         {
           name: "예상 최대 진도",
           value: `**${jindoStr}**`,
@@ -149,6 +235,12 @@ export class ServerIntensityAggregator {
       timestamp: new Date().toISOString()
     };
 
+    // 감지 위치가 표시된 최신 실시간 지도를 첨부
+    const mapGif = this.buildMapGif(topStation ? topStation.code : null);
+    if (mapGif) {
+      embed.image = { url: 'attachment://map.gif' };
+    }
+
     const payload = {
       embeds: [embed]
     };
@@ -156,12 +248,21 @@ export class ServerIntensityAggregator {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
+
+      let res: Response;
+      if (mapGif) {
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify(payload));
+        form.append('files[0]', new Blob([new Uint8Array(mapGif)], { type: 'image/gif' }), 'map.gif');
+        res = await fetch(webhookUrl, { method: 'POST', body: form, signal: controller.signal });
+      } else {
+        res = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+      }
       clearTimeout(timeout);
       
       if (!res.ok) {
@@ -176,8 +277,13 @@ export class ServerIntensityAggregator {
 
   private loadStationList() {
     try {
-      const p = path.join(process.cwd(), 'public', 'intensity-points-v1.json');
-      if (fs.existsSync(p)) {
+      // 프로덕션 번들은 dist 내부의 JSON을, 개발(tsx)은 public/ 아래 JSON을 읽는다
+      const candidates = [
+        path.join(__dirname, 'intensity-points-v1.json'),
+        path.join(process.cwd(), 'public', 'intensity-points-v1.json'),
+      ];
+      const p = candidates.find(c => fs.existsSync(c));
+      if (p) {
         const raw = fs.readFileSync(p, 'utf-8');
         const json = JSON.parse(raw);
         this.stations = Array.isArray(json) ? json : (json.items || []);
@@ -219,16 +325,23 @@ export class ServerIntensityAggregator {
     }
 
     // 백엔드 자체 감지 파이프라인 수행 후 웹훅 트리거 확인
-    if (this.detectService && payload.intensities) {
-      this.detectService.processKmoniParsedData(payload.intensities, {
-        onNewEventDetected: () => {
-          this.triggerWebhook(payload.source, true);
-        },
-        onSoundTriggered: () => {
-          // 진도가 상승하여 알림 조건이 충족될 때 진도 기준 없이 웹훅 전송 (60초 쿨타임 적용됨)
-          this.triggerWebhook(payload.source, false);
-        }
-      });
+    // 주의: 감지기는 kmoni 관측소 코드 기준이라 yahoo(인덱스 키) 페이로드를 넣으면
+    // 전 관측소 상태가 null로 초기화되어 감지가 영원히 트리거되지 않는다.
+    if (this.detectService && payload.source === 'kmoni' && payload.intensities) {
+      try {
+        this.detectService.processKmoniParsedData(payload.intensities, {
+          onNewEventDetected: () => {
+            this.triggerWebhook(payload.source, true);
+          },
+          onSoundTriggered: () => {
+            // 진도가 상승하여 알림 조건이 충족될 때 진도 기준 없이 웹훅 전송 (60초 쿨타임 적용됨)
+            this.triggerWebhook(payload.source, false);
+          }
+        });
+      } catch (err) {
+        // allSettled가 예외를 삼켜 조용히 죽는 것을 방지
+        console.error('[Detect] 감지 파이프라인 예외:', err);
+      }
     }
   }
 
@@ -293,6 +406,7 @@ export class ServerIntensityAggregator {
           const arrayBuffer = await resp.arrayBuffer();
           buffer = Buffer.from(arrayBuffer);
           finalTimeStr = timeStr;
+          this.lastKmoniGif = buffer;
           this.kmoniOptimalDelay = delay; // 다음 루프 최적 딜레이 캐싱
           break;
         }
