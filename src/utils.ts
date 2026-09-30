@@ -73,3 +73,13 @@ export class NoiseFilterService {
     return sorted[1]; // 중앙값
   }
 }
+
+/**
+ * 임의 시각을 일본 표준시(JST, UTC+9)의 "HH:MM:SS" 문자열로 변환한다.
+ * 방문자 기기 시간대와 무관하게 일관된 표기를 위해 사용.
+ */
+export function formatJSTClock(date: Date = new Date()): string {
+  const jst = new Date(date.getTime() + (9 * 60 + date.getTimezoneOffset()) * 60000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(jst.getHours())}:${p(jst.getMinutes())}:${p(jst.getSeconds())}`;
+}

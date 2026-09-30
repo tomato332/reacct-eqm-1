@@ -1,6 +1,13 @@
 class AudioService {
   private audioCtx: AudioContext | null = null;
-  public isMuted: boolean = true;
+  // 음소거 상태는 localStorage에 유지 (새로고침해도 유지). 기본값은 음소거(브라우저 자동재생 정책 고려).
+  public isMuted: boolean = (() => {
+    try {
+      return localStorage.getItem('eqm-muted') !== 'false';
+    } catch {
+      return true;
+    }
+  })();
   private lastUpdateBeep = 0;
   private lastEEWChime = 0;
 
@@ -15,6 +22,9 @@ class AudioService {
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    try {
+      localStorage.setItem('eqm-muted', String(muted));
+    } catch {}
     if (!muted) {
       this.init();
     }

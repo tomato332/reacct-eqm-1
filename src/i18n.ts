@@ -102,7 +102,7 @@ export const resources = {
       detectAlert: {
         title: '[{{source}} 지진 감지]',
         expectedIntensity: '예상 진도',
-        detectedAt: '감지 시각',
+        detectedAt: '감지 시각 (JST)',
         location: '추정 위치',
         focusMap: '지도로 이동',
         dismiss: '닫기',
@@ -235,7 +235,7 @@ export const resources = {
       detectAlert: {
         title: '[{{source}} Earthquake Detected]',
         expectedIntensity: 'Expected Intensity',
-        detectedAt: 'Detected At',
+        detectedAt: 'Detected At (JST)',
         location: 'Est. Location',
         focusMap: 'Focus Map',
         dismiss: 'Close',
@@ -367,7 +367,7 @@ export const resources = {
       detectAlert: {
         title: '[{{source}} 地震検知]',
         expectedIntensity: '予想震度',
-        detectedAt: '検知時刻',
+        detectedAt: '検知時刻 (JST)',
         location: '推定位置',
         focusMap: '地図へ移動',
         dismiss: '閉じる',

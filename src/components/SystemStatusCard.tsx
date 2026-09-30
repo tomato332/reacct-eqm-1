@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ShieldCheck, AlertTriangle, Activity, WifiOff, Radio, ChevronDown, ChevronUp } from 'lucide-react';
 import { SystemAlertStatus } from '../types';
 import { useDataSourceHealth, formatRelativeTime } from '../dataHealthService';
+import { formatJSTClock } from '../utils';
 import styles from './mobile/MobileView.module.css';
 
 interface SystemStatusCardProps {
@@ -22,12 +23,11 @@ export const SystemStatusCard: React.FC<SystemStatusCardProps> = ({
   const healthMap = useDataSourceHealth();
   const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
 
-  // 데이터 소스 목록
+  // 데이터 소스 목록 (기상청(KMA)은 미사용 엔드포인트라 표시하지 않음)
   const sources = [
     healthMap.wolfx,
     healthMap.p2p,
     healthMap.kmoni,
-    healthMap.kma,
   ];
 
   // 유효한 수신 타임스탬프 중 최신 시각 산출
@@ -120,7 +120,7 @@ export const SystemStatusCard: React.FC<SystemStatusCardProps> = ({
   };
 
   const formattedSyncTime = latestReceivedAt
-    ? `${new Date(latestReceivedAt).toTimeString().slice(0, 8)} (${formatRelativeTime(latestReceivedAt, i18n.language)})`
+    ? `${formatJSTClock(new Date(latestReceivedAt))} (${formatRelativeTime(latestReceivedAt, i18n.language)})`
     : t('systemStatus.statusLabels.offline');
 
   return (
@@ -131,7 +131,7 @@ export const SystemStatusCard: React.FC<SystemStatusCardProps> = ({
           {renderStatusHeader()}
         </div>
         <span className={styles.systemUpdateTime} title={latestReceivedAt ? new Date(latestReceivedAt).toISOString() : ''}>
-          {t('systemStatus.lastUpdate')}: {formattedSyncTime}
+          {t('systemStatus.lastUpdate')} (JST): {formattedSyncTime}
         </span>
       </div>
 

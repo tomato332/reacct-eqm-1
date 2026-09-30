@@ -9,6 +9,7 @@ import { fitJapanBounds } from './zoomUtils';
 import { P2PEarthquakeEvent, formatScaleJMA } from './P2PQuakeService';
 import { translatePrefecture, translateRegionName, formatObservationPointName } from './translateUtils';
 import { dataHealthService } from './dataHealthService';
+import { formatJSTClock } from './utils';
 
 function isPointInRing(pt: [number, number], ring: [number, number][]): boolean {
   const x = pt[0], y = pt[1];
@@ -752,7 +753,7 @@ export class CleanVectorMapRenderer {
           const topStns = currentService.getTopStations(1);
           const topStn = topStns[0];
           const now = new Date();
-          const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+          const timeStr = formatJSTClock(now);
           const curJindo = topStn?.jindo ?? -0.5;
           const curJindoStr = topStn?.jindoStr ?? '0';
 
@@ -801,7 +802,7 @@ export class CleanVectorMapRenderer {
           const topStns = currentService.getTopStations(1);
           const topStn = topStns[0];
           const now = new Date();
-          const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+          const timeStr = formatJSTClock(now);
 
           if (onDetectionAlert) {
             onDetectionAlert({
