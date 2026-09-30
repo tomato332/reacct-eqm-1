@@ -123,6 +123,18 @@ export class ServerIntensityAggregator {
   private webhookCooldown = 0;
   private lastKmoniGif: Buffer | null = null; // 웹훅 지도 첨부용
 
+  // 감지 구간 애니메이션 GIF용: 이벤트 활성 동안 초당 프레임 버퍼
+  private eventFrameBuffer: { timeStr: string; gif: Buffer }[] = [];
+  private isEventBuffering = false;
+  // 감지 활성 마지막 시점의 격자(종료 시에는 비어버리므로 별도 보관) — 애니메이션 위에 그림
+  private lastActiveGridGeojson: any = null;
+  private static readonly MAX_EVENT_FRAMES = 90; // 최대 90초 분량
+
+  // 즉시 알림 메시지를 감지 종료 시 수정(리포트 추가)하기 위한 상태
+  private lastAlertMessageId: string | null = null;
+  private lastAlertEmbed: any = null;
+  private lastSentMapGif: Buffer | null = null;
+
   constructor() {
     this.loadStationList();
     this.startPollingLoop();
@@ -131,13 +143,14 @@ export class ServerIntensityAggregator {
   }
 
   /**
-   * 최신 kmoni GIF 위에 사이트의 감지 격자(updateDetectedEvents의 셀 폴리곤)를
-   * 동일하게 그려 GIF로 재인코딩한다.
+   * kmoni GIF 1장을 디코딩해 바다 배경 채우기 + 감지 격자 합성 + 팔레트 양자화까지 수행.
+   * 단일 프레임 웹훅 이미지와 감지 구간 애니메이션 GIF 양쪽에서 재사용한다.
    */
-  private buildMapGif(): Buffer | null {
-    if (!this.lastKmoniGif) return null;
+  private compositeFrame(gifBuffer: Buffer, gridFeatures: any[]): {
+    width: number; height: number; indices: Uint8Array; palette: number[];
+  } | null {
     try {
-      const reader = new GifReader(this.lastKmoniGif);
+      const reader = new GifReader(gifBuffer);
       const width = reader.width;
       const height = reader.height;
       const rgba = new Uint8Array(width * height * 4);
@@ -156,8 +169,7 @@ export class ServerIntensityAggregator {
       // 사이트 감지 격자를 GIF 픽셀 좌표로 변환해 그린다.
       // kmoni 지도는 등간격 투영(본토/남서제도 인셋 두 개)이므로 분석으로 확정된 고정 상수를 사용한다.
       // ※ 전 관측소 일괄 선형회귀는 인셋 관측소가 섞여 최대 6° 왜곡이 생기므로 쓰지 않는다.
-      const detectedFeatures = this.detectService?.lastDetectedGeojson?.features ?? [];
-      if (detectedFeatures.length > 0) {
+      if (gridFeatures.length > 0) {
         const lonToX = (lon: number, lat: number) => {
           const p = isInInsetRegion(lon, lat) ? INSET_PROJECTION : MAIN_PROJECTION;
           return Math.round((lon - p.lon0) / p.lonPerPx);
@@ -186,7 +198,7 @@ export class ServerIntensityAggregator {
             plot(Math.round(x1 + (x2 - x1) * s / steps), Math.round(y1 + (y2 - y1) * s / steps));
           }
         };
-        for (const f of detectedFeatures) {
+        for (const f of gridFeatures) {
           const ring = f?.geometry?.coordinates?.[0];
           if (!Array.isArray(ring)) continue;
           for (let i = 0; i < ring.length - 1; i++) {
@@ -223,13 +235,59 @@ export class ServerIntensityAggregator {
       const pal = [...palette];
       while (pal.length < palSize) pal.push(0);
 
-      const outBuf = new Uint8Array(width * height + 768 + 4096);
-      const writer = new GifWriter(outBuf as any, width, height, { palette: pal } as any);
-      writer.addFrame(0, 0, width, height, indices, { palette: pal } as any);
+      return { width, height, indices, palette: pal };
+    } catch (err) {
+      console.error('[Webhook] 프레임 합성 실패:', err);
+      return null;
+    }
+  }
+
+  /**
+   * 최신 kmoni GIF 위에 사이트의 감지 격자(updateDetectedEvents의 셀 폴리곤)를
+   * 동일하게 그려 GIF로 재인코딩한다.
+   */
+  private buildMapGif(): Buffer | null {
+    if (!this.lastKmoniGif) return null;
+    const frame = this.compositeFrame(this.lastKmoniGif, this.detectService?.lastDetectedGeojson?.features ?? []);
+    if (!frame) return null;
+
+    const outBuf = new Uint8Array(frame.width * frame.height + 768 + 4096);
+    const writer = new GifWriter(outBuf as any, frame.width, frame.height, { palette: frame.palette } as any);
+    writer.addFrame(0, 0, frame.width, frame.height, frame.indices, { palette: frame.palette } as any);
+    const len = writer.end();
+    return Buffer.from(outBuf.subarray(0, len));
+  }
+
+  /**
+   * 감지 구간(이벤트 활성 동안 버퍼링한 프레임)으로 애니메이션 GIF를 만든다.
+   * 각 프레임 위에는 감지 활성 시점의 격자(lastActiveGridGeojson)를 그린다.
+   * 프레임은 초당 1장이므로 GIF 딜레이는 100(=1초) 단위.
+   */
+  private buildEventAnimationGif(): Buffer | null {
+    if (this.eventFrameBuffer.length === 0) return null;
+    const gridFeatures = this.lastActiveGridGeojson?.features ?? [];
+    try {
+      const frames: { indices: Uint8Array; palette: number[] }[] = [];
+      let width = 0, height = 0;
+
+      for (const { gif } of this.eventFrameBuffer) {
+        const frame = this.compositeFrame(gif, gridFeatures);
+        if (!frame) continue;
+        width = frame.width;
+        height = frame.height;
+        frames.push({ indices: frame.indices, palette: frame.palette });
+      }
+      if (frames.length === 0) return null;
+
+      const outBuf = new Uint8Array(frames.length * (width * height + 768) + 4096);
+      const writer = new GifWriter(outBuf as any, width, height, { loop: 0 } as any);
+      for (const f of frames) {
+        writer.addFrame(0, 0, width, height, f.indices, { palette: f.palette, delay: 100 } as any);
+      }
       const len = writer.end();
       return Buffer.from(outBuf.subarray(0, len));
     } catch (err) {
-      console.error('[Webhook] 지도 이미지 생성 실패:', err);
+      console.error('[Webhook] 감지 구간 애니메이션 생성 실패:', err);
       return null;
     }
   }
@@ -322,9 +380,10 @@ export class ServerIntensityAggregator {
         const form = new FormData();
         form.append('payload_json', JSON.stringify(payload));
         form.append('files[0]', new Blob([new Uint8Array(mapGif)], { type: 'image/gif' }), 'map.gif');
-        res = await fetch(webhookUrl, { method: 'POST', body: form, signal: controller.signal });
+        // ?wait=true: 응답으로 메시지 ID를 받아, 감지 종료 시 이 메시지에 리포트를 붙일 수 있게 함
+        res = await fetch(`${webhookUrl}?wait=true`, { method: 'POST', body: form, signal: controller.signal });
       } else {
-        res = await fetch(webhookUrl, {
+        res = await fetch(`${webhookUrl}?wait=true`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -332,14 +391,105 @@ export class ServerIntensityAggregator {
         });
       }
       clearTimeout(timeout);
-      
+
       if (!res.ok) {
         console.error(`[Webhook] 응답 오류: ${res.status} ${res.statusText}`);
       } else {
         console.log(`[Webhook] 알림 발송 완료 (최대 진도: ${jindoStr})`);
+        // 감지 종료 시 이 메시지를 수정해 리포트를 붙일 수 있도록 상태 보관
+        try {
+          const sent = await res.json();
+          if (sent?.id) {
+            this.lastAlertMessageId = sent.id;
+            this.lastAlertEmbed = embed;
+            this.lastSentMapGif = mapGif;
+          }
+        } catch {}
       }
     } catch (err) {
       console.error(`[Webhook] 발송 실패:`, err);
+    }
+  }
+
+  /**
+   * 감지 구간 종료 시 애니메이션 리포트를 웹훅으로 보낸다.
+   * 즉시 알림 메시지가 있으면 그 메시지를 "수정(PATCH)"해 리포트 임베드를 옆에 붙이고,
+   * 없으면 별도 메시지로 발송한다. 60초 쿨타임을 적용하지 않는다.
+   */
+  private async sendEventAnimationWebhook() {
+    const webhookUrl = process.env.WEBHOOK_URL;
+    if (!webhookUrl) return;
+    if (this.eventFrameBuffer.length === 0) return;
+
+    // 버퍼를 먼저 사용해 GIF를 만든 뒤 비운다 (비우고 만들면 항상 실패함)
+    const animationGif = this.buildEventAnimationGif();
+    const frames = this.eventFrameBuffer;
+    this.eventFrameBuffer = []; // 전송 여부와 무관하게 버퍼는 비운다 (다음 이벤트 대비)
+    if (!animationGif) {
+      console.warn(`[Webhook] 애니메이션 GIF 생성 실패로 발송 생략 (버퍼 ${frames.length}프레임)`);
+      return;
+    }
+
+    const firstTime = frames[0].timeStr;
+    const lastTime = frames[frames.length - 1].timeStr;
+    const durationSec = frames.length;
+
+    const reportEmbed = {
+      title: "🎞️ 흔들림 감지 구간 리포트",
+      description: `감지가 유지된 구간의 실시간 지도 애니메이션입니다.`,
+      color: 0xef4444,
+      fields: [
+        { name: "감지 구간", value: `${firstTime} ~ ${lastTime} (KST)`, inline: false },
+        { name: "구간 길이", value: `약 ${durationSec}초`, inline: true }
+      ],
+      timestamp: new Date().toISOString()
+    };
+    reportEmbed.image = { url: 'attachment://event.gif' };
+
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      let res: Response;
+
+      // 즉시 알림 메시지가 보관되어 있으면 그 메시지에 리포트를 붙인다 (한 메시지에 임베드 2개 = 나란히 표시)
+      if (this.lastAlertMessageId && this.lastAlertEmbed && this.lastSentMapGif) {
+        const patchPayload = {
+          embeds: [this.lastAlertEmbed, reportEmbed],
+          attachments: [
+            { id: 0, filename: 'map.gif' },
+            { id: 1, filename: 'event.gif' }
+          ]
+        };
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify(patchPayload));
+        form.append('files[0]', new Blob([new Uint8Array(this.lastSentMapGif)], { type: 'image/gif' }), 'map.gif');
+        form.append('files[1]', new Blob([new Uint8Array(animationGif)], { type: 'image/gif' }), 'event.gif');
+        res = await fetch(`${webhookUrl}/messages/${this.lastAlertMessageId}`, {
+          method: 'PATCH',
+          body: form,
+          signal: controller.signal
+        });
+      } else {
+        // 알림 메시지를 못 받았으면(쿨타임 억제 등) 별도 메시지로 발송
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify({ embeds: [reportEmbed] }));
+        form.append('files[0]', new Blob([new Uint8Array(animationGif)], { type: 'image/gif' }), 'event.gif');
+        res = await fetch(webhookUrl, { method: 'POST', body: form, signal: controller.signal });
+      }
+      clearTimeout(timeout);
+
+      this.lastAlertMessageId = null;
+      this.lastAlertEmbed = null;
+      this.lastSentMapGif = null;
+
+      if (!res.ok) {
+        console.error(`[Webhook] 애니메이션 발송 오류: ${res.status} ${res.statusText}`);
+      } else {
+        console.log(`[Webhook] 감지 구간 리포트 발송 완료 (${frames.length}프레임, ${(animationGif.length / 1024).toFixed(0)}KB)`);
+      }
+    } catch (err) {
+      console.error(`[Webhook] 애니메이션 발송 실패:`, err);
     }
   }
 
@@ -398,12 +548,33 @@ export class ServerIntensityAggregator {
     if (this.detectService && payload.source === 'kmoni' && payload.intensities) {
       try {
         this.detectService.processKmoniParsedData(payload.intensities, {
+          // 감지 격자가 생긴 동안의 최신 격자를 보관 (종료 시에는 비어버리므로)
+          onDetectedUpdated: (gridGeojson) => {
+            if (gridGeojson?.features?.length > 0) {
+              this.lastActiveGridGeojson = gridGeojson;
+            }
+          },
           onNewEventDetected: () => {
+            // 감지 구간 프레임 버퍼링 시작 (진행 중이면 유지)
+            if (!this.isEventBuffering) {
+              this.isEventBuffering = true;
+              this.eventFrameBuffer = [];
+              // 새 감지 이벤트이므로 이전 이벤트의 알림 메시지에는 리포트를 붙이지 않는다
+              this.lastAlertMessageId = null;
+              this.lastAlertEmbed = null;
+              this.lastSentMapGif = null;
+              console.log('[Webhook] 감지 구간 프레임 버퍼링 시작');
+            }
             this.triggerWebhook(payload.source, true);
           },
           onSoundTriggered: () => {
             // 진도가 상승하여 알림 조건이 충족될 때 진도 기준 없이 웹훅 전송 (60초 쿨타임 적용됨)
             this.triggerWebhook(payload.source, false);
+          },
+          // 감지가 모두 만료되면 구간 애니메이션 GIF를 웹훅으로 발송
+          onEventsFinished: () => {
+            this.isEventBuffering = false;
+            this.sendEventAnimationWebhook().catch(() => {});
           }
         });
       } catch (err) {
@@ -476,6 +647,17 @@ export class ServerIntensityAggregator {
           finalTimeStr = timeStr;
           this.lastKmoniGif = buffer;
           this.kmoniOptimalDelay = delay; // 다음 루프 최적 딜레이 캐싱
+
+          // 감지 구간 프레임 수집 (중복 타임스탬프 방지, 최대치 초과 시 오래된 것부터 폐기)
+          if (this.isEventBuffering) {
+            const last = this.eventFrameBuffer[this.eventFrameBuffer.length - 1];
+            if (!last || last.timeStr !== finalTimeStr) {
+              this.eventFrameBuffer.push({ timeStr: finalTimeStr, gif: buffer });
+              if (this.eventFrameBuffer.length > ServerIntensityAggregator.MAX_EVENT_FRAMES) {
+                this.eventFrameBuffer.shift();
+              }
+            }
+          }
           break;
         }
       } catch {}
