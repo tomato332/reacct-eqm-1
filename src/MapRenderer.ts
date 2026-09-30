@@ -644,8 +644,9 @@ export class CleanVectorMapRenderer {
         paint: {
           'circle-radius': [
             'interpolate', ['linear'], ['zoom'],
-            4, ['case', ['<', ['get', 'intensityCode'], 0], 0, ['==', ['get', 'color'], 'transparent'], 0, ['<', ['get', 'intensityCode'], 101], 2.5, ['<', ['get', 'intensityCode'], 104], 4.5, 7.0],
-            8, ['case', ['<', ['get', 'intensityCode'], 0], 0, ['==', ['get', 'color'], 'transparent'], 0, ['<', ['get', 'intensityCode'], 101], 4.0, ['<', ['get', 'intensityCode'], 104], 6.5, 9.5]
+            // 파랑 계열(진도 -1.0 미만)은 배경 점처럼 작게, 유의미한 진도만 크게. 데이터 없는 관측소는 숨김.
+            4, ['case', ['<', ['get', 'intensityCode'], 0], 0, ['==', ['get', 'color'], 'transparent'], 0, ['<', ['get', 'intensityCode'], 101], 2.5, 4.5],
+            8, ['case', ['<', ['get', 'intensityCode'], 0], 0, ['==', ['get', 'color'], 'transparent'], 0, ['<', ['get', 'intensityCode'], 101], 3.5, 6.5]
           ],
           'circle-color': ['get', 'color'],
           'circle-opacity': [
@@ -653,7 +654,8 @@ export class CleanVectorMapRenderer {
             ['<', ['get', 'intensityCode'], 0], 0,
             ['==', ['get', 'color'], 'transparent'], 0,
             ['==', ['get', 'color'], 'rgba(0, 0, 0, 0)'], 0,
-            ['<', ['get', 'intensityCode'], 101], 0.85,
+            // 파랑 계열은 배경에 은은하게, 유의미한 진도는 선명하게
+            ['<', ['get', 'intensityCode'], 101], 0.3,
             1.0
           ],
           'circle-stroke-width': [
@@ -661,7 +663,8 @@ export class CleanVectorMapRenderer {
             ['<', ['get', 'intensityCode'], 0], 0,
             ['==', ['get', 'color'], 'transparent'], 0,
             ['==', ['get', 'color'], 'rgba(0, 0, 0, 0)'], 0,
-            ['<', ['get', 'intensityCode'], 101], 0.5,
+            // 파랑 계열은 테두리 없음 (겹쳐 보이는 주범)
+            ['<', ['get', 'intensityCode'], 101], 0,
             1.5
           ],
           'circle-stroke-color': [
