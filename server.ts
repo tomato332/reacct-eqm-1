@@ -79,85 +79,87 @@ export function createApp() {
     return res.json({ success: true, mode });
   });
 
-  // 4. KMA Earthquake API (Proxy)
-  app.get("/api/kma/earthquake", async (req, res) => {
-    try {
-      const authKey = req.query.authKey || process.env.KMA_AUTH_KEY;
-      if (!authKey || typeof authKey !== 'string') {
-        return res.status(400).json({ error: "API Key is required" });
-      }
-
-      // Input Validation: Prevent injection attacks by allowing only alphanumeric and basic symbols
-      if (!/^[a-zA-Z0-9_-]+$/.test(authKey)) {
-        return res.status(400).json({ error: "Invalid API Key format" });
-      }
-
-      const url = `https://apihub.kma.go.kr/api/typ01/url/eqk_now.php?disp=1&help=1&authKey=${authKey}`;
-      
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeout);
-      
-      if (!response.ok) {
-        return res.status(response.status).json({ error: `KMA API responded with status: ${response.status}` });
-      }
-
-      // The KMA API returns EUC-KR usually, but we fetch as arrayBuffer and decode
-      const buffer = await response.arrayBuffer();
-      const decoder = new TextDecoder('euc-kr');
-      const text = decoder.decode(buffer);
-
-      // Parse CSV format
-      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-      const dataLines = lines.filter(line => !line.startsWith('#') && line.includes(','));
-      
-      if (dataLines.length === 0) {
-         return res.json({ event: null, raw: text });
-      }
-
-      // 1. TP     : 2(국외지진정보), 3(국내지진통보), 5(지진정보(재통보)), 10(지진현장경보), 11(지진조기경보), 12(국외지진조기경보(시범)), 14(지진속보)
-      // Pick the latest domestic one, or fallback to the latest one overall
-      let selectedLine = dataLines[dataLines.length - 1];
-      const domesticLines = dataLines.filter(line => {
-        const type = line.split(',')[0].trim();
-        return ['3', '5', '10', '11', '14'].includes(type);
-      });
-      if (domesticLines.length > 0) {
-        selectedLine = domesticLines[domesticLines.length - 1];
-      }
-
-      const fields = selectedLine.split(',').map(f => f.trim());
-      
-      // Format time: 20260831024920.000 -> 2026-08-31 02:49:20
-      let timeFormatted = fields[3] || "";
-      if (timeFormatted.length >= 14) {
-        timeFormatted = `${timeFormatted.substring(0,4)}-${timeFormatted.substring(4,6)}-${timeFormatted.substring(6,8)} ${timeFormatted.substring(8,10)}:${timeFormatted.substring(10,12)}:${timeFormatted.substring(12,14)}`;
-      }
-      
-      // We send back both the raw fields and parsed structure
-      res.json({
-        event: {
-          time: timeFormatted,
-          lat: Number(parseFloat(fields[5])) || 0,
-          lon: Number(parseFloat(fields[6])) || 0,
-          location: fields[7] || "Unknown",
-          magnitude: Number(parseFloat(fields[4])) || 0,
-          depth: "", // KMA eqk_now.php CSV doesn't provide explicit depth in this format
-          raw: fields
-        },
-        rawText: text
-      });
-    } catch (error: any) {
-      if (error.name === 'AbortError' || error.message.includes('fetch failed')) {
-        // Suppress
-      } else {
-        console.error("[KMA Proxy Error]:", error.message);
-      }
-      res.status(500).json({ error: "Failed to fetch from KMA API" });
-    }
-  });
+  /* [미사용] 기상청(KMA) 지진 프록시 — 서버에 KMA_AUTH_KEY가 없어 동작하지 않던 기능.
+     보안 정리(#3, authKey 파라미터 노출)로 엔드포인트 자체를 비활성화. 재사용 시 주석 해제. */
+  // // 4. KMA Earthquake API (Proxy)
+  // app.get("/api/kma/earthquake", async (req, res) => {
+  // try {
+  // const authKey = req.query.authKey || process.env.KMA_AUTH_KEY;
+  // if (!authKey || typeof authKey !== 'string') {
+  // return res.status(400).json({ error: "API Key is required" });
+  // }
+  //
+  // // Input Validation: Prevent injection attacks by allowing only alphanumeric and basic symbols
+  // if (!/^[a-zA-Z0-9_-]+$/.test(authKey)) {
+  // return res.status(400).json({ error: "Invalid API Key format" });
+  // }
+  //
+  // const url = `https://apihub.kma.go.kr/api/typ01/url/eqk_now.php?disp=1&help=1&authKey=${authKey}`;
+  //
+  // const controller = new AbortController();
+  // const timeout = setTimeout(() => controller.abort(), 5000);
+  //
+  // const response = await fetch(url, { signal: controller.signal });
+  // clearTimeout(timeout);
+  //
+  // if (!response.ok) {
+  // return res.status(response.status).json({ error: `KMA API responded with status: ${response.status}` });
+  // }
+  //
+  // // The KMA API returns EUC-KR usually, but we fetch as arrayBuffer and decode
+  // const buffer = await response.arrayBuffer();
+  // const decoder = new TextDecoder('euc-kr');
+  // const text = decoder.decode(buffer);
+  //
+  // // Parse CSV format
+  // const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  // const dataLines = lines.filter(line => !line.startsWith('#') && line.includes(','));
+  //
+  // if (dataLines.length === 0) {
+  // return res.json({ event: null, raw: text });
+  // }
+  //
+  // // 1. TP     : 2(국외지진정보), 3(국내지진통보), 5(지진정보(재통보)), 10(지진현장경보), 11(지진조기경보), 12(국외지진조기경보(시범)), 14(지진속보)
+  // // Pick the latest domestic one, or fallback to the latest one overall
+  // let selectedLine = dataLines[dataLines.length - 1];
+  // const domesticLines = dataLines.filter(line => {
+  // const type = line.split(',')[0].trim();
+  // return ['3', '5', '10', '11', '14'].includes(type);
+  // });
+  // if (domesticLines.length > 0) {
+  // selectedLine = domesticLines[domesticLines.length - 1];
+  // }
+  //
+  // const fields = selectedLine.split(',').map(f => f.trim());
+  //
+  // // Format time: 20260831024920.000 -> 2026-08-31 02:49:20
+  // let timeFormatted = fields[3] || "";
+  // if (timeFormatted.length >= 14) {
+  // timeFormatted = `${timeFormatted.substring(0,4)}-${timeFormatted.substring(4,6)}-${timeFormatted.substring(6,8)} ${timeFormatted.substring(8,10)}:${timeFormatted.substring(10,12)}:${timeFormatted.substring(12,14)}`;
+  // }
+  //
+  // // We send back both the raw fields and parsed structure
+  // res.json({
+  // event: {
+  // time: timeFormatted,
+  // lat: Number(parseFloat(fields[5])) || 0,
+  // lon: Number(parseFloat(fields[6])) || 0,
+  // location: fields[7] || "Unknown",
+  // magnitude: Number(parseFloat(fields[4])) || 0,
+  // depth: "", // KMA eqk_now.php CSV doesn't provide explicit depth in this format
+  // raw: fields
+  // },
+  // rawText: text
+  // });
+  // } catch (error: any) {
+  // if (error.name === 'AbortError' || error.message.includes('fetch failed')) {
+  // // Suppress
+  // } else {
+  // console.error("[KMA Proxy Error]:", error.message);
+  // }
+  // res.status(500).json({ error: "Failed to fetch from KMA API" });
+  // }
+  // });
 
   // Proxy endpoint to bypass CORS for Yahoo API and Kyoshin Monitor (kmoni)
   const ALLOWED_PROXY_HOSTS = [
@@ -218,6 +220,11 @@ export function createApp() {
       }
       res.status(500).json({ error: "Failed to fetch from target URL" });
     }
+  });
+
+  // 알 수 없는 /api 경로는 SPA 폴백(HTML 200) 대신 404 JSON으로 응답
+  app.use('/api', (req, res) => {
+    res.status(404).json({ error: "Not found" });
   });
 
   // Global Error Handler to catch any unhandled exceptions and prevent stack trace leaks
