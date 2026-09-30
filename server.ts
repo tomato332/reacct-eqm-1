@@ -190,6 +190,11 @@ export function createApp() {
       return res.status(403).json({ error: "Access to this host is forbidden (SSRF Protection)" });
     }
 
+    // 허용된 호스트라도 임의 포트/암호화 안 된 http 중계는 차단 (SSRF 변형 방지)
+    if (parsedUrl.protocol !== 'https:' || (parsedUrl.port && parsedUrl.port !== '443')) {
+      return res.status(403).json({ error: "Only https (port 443) targets are allowed" });
+    }
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
