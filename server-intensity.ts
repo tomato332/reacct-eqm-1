@@ -25,7 +25,7 @@ export interface IntensityUpdatePayload {
 }
 
 // RGB to JMA Instrumental Intensity reverse calculation
-function getIntensityFromRGB(r: number, g: number, b: number): number | null {
+export function getIntensityFromRGB(r: number, g: number, b: number): number | null {
   if (r === 0 && g === 0 && b === 0) return null;
   if (Math.abs(r - g) < 4 && Math.abs(g - b) < 4 && Math.abs(r - b) < 4 && r < 60) return null;
 
@@ -51,16 +51,16 @@ function getIntensityFromRGB(r: number, g: number, b: number): number | null {
 
 // kmoni jma_s GIF의 투영 상수 (1628개 관측소 Point 잔차 분석으로 확정).
 // 본토와 남서제도(오키나와·아마미)는 동일 축척의 등간격 투영이지만 인셋 박스 원점이 다르다.
-const MAIN_PROJECTION = {
+export const MAIN_PROJECTION = {
   lonPerPx: 0.0491300, lon0: 128.6268,
   latPerPx: -0.0407483, lat0: 46.2400
 };
-const INSET_PROJECTION = {
+export const INSET_PROJECTION = {
   lonPerPx: 0.0491574, lon0: 122.5219,
   latPerPx: -0.0405859, lat0: 32.0293
 };
 // 남서제도 인셋 판정 (본토 최남단 관측소 屋久 lon~130.4와의 경계)
-function isInInsetRegion(lon: number, lat: number): boolean {
+export function isInInsetRegion(lon: number, lat: number): boolean {
   return lon < 130 && lat < 30.5;
 }
 
@@ -69,7 +69,7 @@ function isInInsetRegion(lon: number, lat: number): boolean {
  * 실제 진도 표시는 지도 위 여러 픽셀 뭉치로 그려지므로, Point 주변 3×3에서
  * 중심과 비슷한 색이 3픽셀 이상 있어야 인정한다. 고립된 밝은 점(노이즈 1px)은 기각.
  */
-function validateSpatialSupport(rgba: Uint8Array, width: number, height: number, cx: number, cy: number): boolean {
+export function validateSpatialSupport(rgba: Uint8Array, width: number, height: number, cx: number, cy: number): boolean {
   const ci = (cy * width + cx) * 4;
   const cr = rgba[ci], cg = rgba[ci + 1], cb = rgba[ci + 2];
 
@@ -156,12 +156,12 @@ export class ServerIntensityAggregator {
       const rgba = new Uint8Array(width * height * 4);
       reader.decodeAndBlitFrameRGBA(0, rgba);
 
-      // 투명 픽셀(바다/배경)을 지도 느낌의 옅은 파란색으로 채운다
+      // 투명 픽셀(바다/배경)을 검정 배경으로 채운다 (kmoni 다크 테마 스타일)
       for (let p = 0; p < width * height; p++) {
         if (rgba[p * 4 + 3] === 0) {
-          rgba[p * 4] = 174;
-          rgba[p * 4 + 1] = 210;
-          rgba[p * 4 + 2] = 234;
+          rgba[p * 4] = 13;
+          rgba[p * 4 + 1] = 13;
+          rgba[p * 4 + 2] = 18;
           rgba[p * 4 + 3] = 255;
         }
       }
