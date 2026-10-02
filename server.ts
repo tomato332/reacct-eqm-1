@@ -246,6 +246,19 @@ export function createApp() {
     res.sendFile(filePath);
   });
 
+  // 6. 감지 이벤트 프레임별 리플레이 데이터 (관측소 진도 + 감지 격자)
+  app.get("/api/history/:id/replay", (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const filePath = aggregator.getReplayPath(id);
+    if (!filePath) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    res.sendFile(filePath);
+  });
+
   app.use('/api', (req, res) => {
     res.status(404).json({ error: "Not found" });
   });

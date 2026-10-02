@@ -7,7 +7,7 @@ import { WolfxEEWService, WolfxEEWData, EEWContext, EEWState } from './WolfxEEWS
 import { P2PQuakeService, P2PEarthquakeEvent, P2PObservationPoint } from './P2PQuakeService';
 import { loadJmaTravelTimeTable } from './travelTime';
 import { BackgroundSyncService } from './backgroundSyncService';
-import { DataSourceType, HoverInfo, IGeoProvider, MapRendererController, DetectionAlertInfo, SystemAlertStatus } from './types';
+import { DataSourceType, HoverInfo, IGeoProvider, MapRendererController, DetectionAlertInfo, SystemAlertStatus, HistoryEntry } from './types';
 import { StaticGeoProvider, CleanVectorMapRenderer } from './MapRenderer';
 import { JAPAN_BOUNDS, fitJapanBounds } from './zoomUtils';
 import { useEEWWaves } from './hooks/useEEWWaves';
@@ -22,6 +22,7 @@ import { TopDashboard } from './components/TopDashboard';
 import { InfoBadge } from './components/InfoBadge';
 import { P2PQuakeCard } from './components/P2PQuakeCard';
 import { HistoryCard } from './components/HistoryCard';
+import { ReplayViewer } from './components/ReplayViewer';
 
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -49,6 +50,8 @@ export default function App() {
   const [eewContext, setEewContext] = useState<EEWContext>({ state: EEWState.IDLE, data: null });
   const [topStations, setTopStations] = useState<TopStationItem[]>([]);
   const [kmoniDetectedCenter, setKmoniDetectedCenter] = useState<[number, number] | null>(null);
+  // 감지 히스토리 리플레이 중인 이벤트
+  const [replayEntry, setReplayEntry] = useState<HistoryEntry | null>(null);
   const [isTopCollapsed, setIsTopCollapsed] = useState(false);
   const [detectionAlert, setDetectionAlert] = useState<DetectionAlertInfo | null>(null);
   const detectionTimerRef = useRef<number | null>(null);
@@ -201,6 +204,19 @@ export default function App() {
         essential: true
       });
     }
+  };
+
+  const handleOpenReplay = (entry: HistoryEntry) => {
+    setReplayEntry(entry);
+    if (entry.center) {
+      handleFocusEpicenter(entry.center[1], entry.center[0]);
+    }
+  };
+
+  const handleCloseReplay = () => {
+    setReplayEntry(null);
+    // 리플레이 모드 해제 후 다음 실시간 업데이트(1초 이내)가 지도를 자동 복구한다
+    handleResetCamera();
   };
 
   const handleFocusEpicenter = (lat: number, lon: number) => {
@@ -361,7 +377,10 @@ export default function App() {
         (stations) => setTopStations(stations),
         (center) => setKmoniDetectedCenter(center),
         (alert) => handleDetectionAlert(alert),
-        () => {}
+        () => {
+          // 감지 종료: 히스토리 카드에 즉시 반영되도록 브로드캐스트
+          window.dispatchEvent(new Event('eqm-detection-finished'));
+        }
       );
       mapControllerRef.current = controller;
       if (selectedP2PEvent) {
@@ -451,6 +470,7 @@ export default function App() {
             onSelectP2PEvent={handleSelectP2PEvent}
             onFocusEpicenter={handleFocusEpicenter}
             onFocusPoint={handleFocusPoint}
+            onReplay={handleOpenReplay}
             hasActiveAlert={fusionContext.state === EEWState.ACTIVE || !!detectionAlert}
             alertStatus={
               fusionContext.state === EEWState.ACTIVE
@@ -514,13 +534,22 @@ export default function App() {
               />
             )}
 
-            <HistoryCard onFocusEpicenter={handleFocusEpicenter} />
+            <HistoryCard onFocusEpicenter={handleFocusEpicenter} onReplay={handleOpenReplay} />
           </div>
 
           {hoverInfo && eewContext.state === EEWState.IDLE && <InfoBadge hoverInfo={hoverInfo} />}
 
           <Legend dataSource={dataSource} />
         </>
+      )}
+
+      {replayEntry && (
+        <ReplayViewer
+          entry={replayEntry}
+          map={mapRef.current}
+          mapController={mapControllerRef.current}
+          onClose={handleCloseReplay}
+        />
       )}
     </div>
   );

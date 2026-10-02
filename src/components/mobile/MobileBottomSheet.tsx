@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DataSourceType, SystemAlertStatus } from '../../types';
+import { DataSourceType, SystemAlertStatus, HistoryEntry } from '../../types';
 import { TopStationItem } from '../../QuakeDetectService';
 import { P2PEarthquakeEvent, P2PObservationPoint } from '../../P2PQuakeService';
 import { translateRegionName, translatePrefecture, formatObservationPointName } from '../../translateUtils';
@@ -32,6 +32,7 @@ interface MobileBottomSheetProps {
   onSelectP2PEvent: (e: P2PEarthquakeEvent) => void;
   onFocusEpicenter: (lat: number, lon: number) => void;
   onFocusPoint: (p: P2PObservationPoint) => void;
+  onReplay?: (entry: HistoryEntry) => void;
   hasActiveAlert?: boolean;
   alertStatus?: SystemAlertStatus;
   alertTitle?: string;
@@ -46,6 +47,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
   onSelectP2PEvent,
   onFocusEpicenter,
   onFocusPoint,
+  onReplay,
   hasActiveAlert = false,
   alertStatus,
   alertTitle,
@@ -413,7 +415,7 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                 />
 
                 {/* 감지 히스토리 */}
-                <HistoryCard onFocusEpicenter={onFocusEpicenter} />
+                <HistoryCard onFocusEpicenter={onFocusEpicenter} onReplay={onReplay ?? (() => {})} />
 
                 {/* 2. JMA 진도 계급 안내 */}
                 <div className={styles.metaTextMuted}>

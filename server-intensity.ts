@@ -39,6 +39,7 @@ export interface DetectedEventHistoryEntry {
   center: [number, number] | null;
   frameCount: number;
   animation: string | null; // data/events/ 아래 파일명
+  replay?: boolean; // 프레임별 리플레이 데이터(event-<id>.replay.json) 존재 여부
 }
 
 /** 진도 수치 → 계급 문자열 (웹훅/히스토리 공용) */
@@ -155,7 +156,8 @@ export class ServerIntensityAggregator {
   private lastKmoniGif: Buffer | null = null; // 웹훅 지도 첨부용
 
   // 감지 구간 애니메이션 GIF용: 이벤트 활성 동안 초당 프레임 버퍼
-  private eventFrameBuffer: { timeStr: string; gif: Buffer }[] = [];
+  // grid에는 해당 시점의 감지 격자(lastActiveGridGeojson) 참조를 함께 보관한다 (리플레이용)
+  private eventFrameBuffer: { timeStr: string; gif: Buffer; grid: any }[] = [];
   private isEventBuffering = false;
   // 감지 활성 마지막 시점의 격자(종료 시에는 비어버리므로 별도 보관) — 애니메이션 위에 그림
   private lastActiveGridGeojson: any = null;
@@ -221,14 +223,69 @@ export class ServerIntensityAggregator {
     return fs.existsSync(p) ? p : null;
   }
 
-  /** 감지 종료 시 이벤트 기록을 만들어 히스토리에 저장한다 */
-  private recordEventHistory(anim: { buf: Buffer; mime: string; frameCount: number } | null) {
-    if (!anim) return;
+  public getReplayPath(id: number): string | null {
+    const entry = this.eventHistory.find((e) => e.id === id);
+    if (!entry?.replay) return null;
+    const p = path.join(this.historyDir, 'events', `event-${id}.replay.json`);
+    return fs.existsSync(p) ? p : null;
+  }
+
+  /**
+   * kmoni GIF 1장을 관측소별 계측진도 맵으로 파싱한다.
+   * 실시간 브로드캐스트와 감지 이벤트 리플레이 저장 양쪽에서 사용.
+   */
+  private parseIntensityMap(gifBuffer: Buffer): Record<string, number | null> {
+    const reader = new GifReader(gifBuffer);
+    const width = reader.width;
+    const height = reader.height;
+
+    const rgba = new Uint8Array(width * height * 4);
+    reader.decodeAndBlitFrameRGBA(0, rgba);
+
+    const intensities: Record<string, number | null> = {};
+
+    for (const stn of this.stations) {
+      if (!stn.Point || stn.IsSuspended) {
+        intensities[stn.Code] = null;
+        continue;
+      }
+
+      const { x, y } = stn.Point;
+      if (x < 0 || x >= width || y < 0 || y >= height) {
+        intensities[stn.Code] = null;
+        continue;
+      }
+
+      const idx = (y * width + x) * 4;
+      const r = rgba[idx];
+      const g = rgba[idx + 1];
+      const b = rgba[idx + 2];
+      const a = rgba[idx + 3];
+
+      if (a === 0) {
+        intensities[stn.Code] = null;
+        continue;
+      }
+
+      const jindo = getIntensityFromRGB(r, g, b);
+      // 고립 노이즈 픽셀 기각: 3×3 이웃 지원이 없으면 무효
+      intensities[stn.Code] = jindo !== null && validateSpatialSupport(rgba, width, height, x, y) ? jindo : null;
+    }
+
+    return intensities;
+  }
+
+  /** 감지 종료 시 이벤트 기록을 만들어 히스토리에 저장한다. 프레임 버퍼 스냅샷으로 리플레이 데이터도 만든다. */
+  private recordEventHistory(
+    anim: { buf: Buffer; mime: string; frameCount: number } | null,
+    replayFrames: { timeStr: string; gif: Buffer; grid: any }[]
+  ) {
+    if (!anim && replayFrames.length === 0) return;
     const now = Date.now();
-    const start = this.currentEventStart ?? now - anim.frameCount * 1000;
+    const start = this.currentEventStart ?? now - (anim?.frameCount ?? replayFrames.length) * 1000;
 
     let animation: string | null = null;
-    if (anim.buf?.length) {
+    if (anim?.buf?.length) {
       try {
         fs.mkdirSync(path.join(this.historyDir, 'events'), { recursive: true });
         const ext = anim.mime === 'video/mp4' ? 'mp4' : 'gif';
@@ -236,6 +293,35 @@ export class ServerIntensityAggregator {
         fs.writeFileSync(path.join(this.historyDir, 'events', animation), anim.buf);
       } catch (err) {
         console.error('[History] 애니메이션 저장 실패:', err);
+      }
+    }
+
+    // 리플레이 데이터: 프레임별 관측소 진도(값 있는 것만) + 감지 격자
+    let replay = false;
+    if (replayFrames.length > 0) {
+      try {
+        fs.mkdirSync(path.join(this.historyDir, 'events'), { recursive: true });
+        const replayJson = {
+          version: 1,
+          intervalSec: 1,
+          startTs: start,
+          times: replayFrames.map((f) => f.timeStr),
+          frames: replayFrames.map((f) => {
+            const intensities = this.parseIntensityMap(f.gif);
+            const sparse: Record<string, number> = {};
+            for (const [code, jindo] of Object.entries(intensities)) {
+              if (jindo !== null) sparse[code] = jindo;
+            }
+            return { i: sparse, g: f.grid ?? null };
+          }),
+        };
+        fs.writeFileSync(
+          path.join(this.historyDir, 'events', `event-${start}.replay.json`),
+          JSON.stringify(replayJson)
+        );
+        replay = true;
+      } catch (err) {
+        console.error('[History] 리플레이 데이터 저장 실패:', err);
       }
     }
 
@@ -249,8 +335,9 @@ export class ServerIntensityAggregator {
       region: this.currentEventTopStation?.region ?? null,
       stationName: this.currentEventTopStation?.name ?? null,
       center: this.currentEventCenter,
-      frameCount: anim.frameCount,
+      frameCount: anim?.frameCount ?? replayFrames.length,
       animation,
+      replay,
     };
     this.eventHistory.unshift(entry);
     if (this.eventHistory.length > 50) this.eventHistory.length = 50;
@@ -799,12 +886,14 @@ export class ServerIntensityAggregator {
             // 진도가 상승하여 알림 조건이 충족될 때 진도 기준 없이 웹훅 전송 (60초 쿨타임 적용됨)
             this.triggerWebhook(payload.source, false);
           },
-          // 감지가 모두 만료되면 구간 애니메이션 GIF를 웹훅으로 발송
+          // 감지가 모두 만료되면 구간 애니메이션 GIF를 웹훅으로 발송 + 리플레이 데이터 저장
           onEventsFinished: () => {
             this.isEventBuffering = false;
+            // sendEventAnimationWebhook이 버퍼를 비우므로 리플레이용 스냅샷을 먼저 떠둔다
+            const replayFrames = this.eventFrameBuffer.map((f) => ({ timeStr: f.timeStr, gif: f.gif, grid: f.grid }));
             this.sendEventAnimationWebhook()
-              .then((anim) => { this.recordEventHistory(anim); })
-              .catch(() => {});
+              .then((anim) => { this.recordEventHistory(anim, replayFrames); })
+              .catch(() => { this.recordEventHistory(null, replayFrames); });
           }
         });
       } catch (err) {
@@ -882,7 +971,7 @@ export class ServerIntensityAggregator {
           if (this.isEventBuffering) {
             const last = this.eventFrameBuffer[this.eventFrameBuffer.length - 1];
             if (!last || last.timeStr !== finalTimeStr) {
-              this.eventFrameBuffer.push({ timeStr: finalTimeStr, gif: buffer });
+              this.eventFrameBuffer.push({ timeStr: finalTimeStr, gif: buffer, grid: this.lastActiveGridGeojson });
               if (this.eventFrameBuffer.length > ServerIntensityAggregator.MAX_EVENT_FRAMES) {
                 this.eventFrameBuffer.shift();
               }
@@ -895,44 +984,9 @@ export class ServerIntensityAggregator {
 
     if (!buffer) return;
 
+    const intensities = this.parseIntensityMap(buffer);
+
     try {
-      const reader = new GifReader(buffer);
-      const width = reader.width;
-      const height = reader.height;
-
-      const rgba = new Uint8Array(width * height * 4);
-      reader.decodeAndBlitFrameRGBA(0, rgba);
-
-      const intensities: Record<string, number | null> = {};
-
-      for (const stn of this.stations) {
-        if (!stn.Point || stn.IsSuspended) {
-          intensities[stn.Code] = null;
-          continue;
-        }
-
-        const { x, y } = stn.Point;
-        if (x < 0 || x >= width || y < 0 || y >= height) {
-          intensities[stn.Code] = null;
-          continue;
-        }
-
-        const idx = (y * width + x) * 4;
-        const r = rgba[idx];
-        const g = rgba[idx + 1];
-        const b = rgba[idx + 2];
-        const a = rgba[idx + 3];
-
-        if (a === 0) {
-          intensities[stn.Code] = null;
-          continue;
-        }
-
-        const jindo = getIntensityFromRGB(r, g, b);
-        // 고립 노이즈 픽셀 기각: 3×3 이웃 지원이 없으면 무효
-        intensities[stn.Code] = jindo !== null && validateSpatialSupport(rgba, width, height, x, y) ? jindo : null;
-      }
-
       this.broadcast({
         timestamp: Date.now(),
         source: 'kmoni',

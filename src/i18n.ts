@@ -66,6 +66,8 @@ export const resources = {
         maxIntensity: '최대진도',
         duration: '{{sec}}초간 감지',
         video: '리포트 영상',
+        replay: '감지 리플레이',
+        replayUnavailable: '리플레이 데이터가 없습니다',
         loadFailed: '기록을 불러올 수 없습니다',
       },
       eew: {
@@ -207,6 +209,8 @@ export const resources = {
         maxIntensity: 'Max Intensity',
         duration: 'Detected for {{sec}}s',
         video: 'Report video',
+        replay: 'Detection Replay',
+        replayUnavailable: 'Replay data unavailable',
         loadFailed: 'Failed to load history',
       },
       eew: {
@@ -348,6 +352,8 @@ export const resources = {
         maxIntensity: '最大震度',
         duration: '{{sec}}秒間検知',
         video: 'レポート動画',
+        replay: '検知リプレイ',
+        replayUnavailable: 'リプレイデータがありません',
         loadFailed: '履歴を読み込めません',
       },
       eew: {

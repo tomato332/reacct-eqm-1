@@ -1816,3 +1816,72 @@
   color: var(--text-primary);
   background-color: var(--surface-subtle);
 }
+
+/* 감지 리플레이 뷰어 (지도 하단 오버레이 바) */
+.replayBar {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  max-width: min(92vw, 560px);
+}
+
+.replayCloseBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.replayCloseBtn:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-subtle);
+}
+
+.replayTitle {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.replayPlayBtn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.replaySlider {
+  flex: 1;
+  min-width: 80px;
+  accent-color: #ef4444;
+}
+
+.replayTime {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

@@ -45,7 +45,25 @@ export interface MapRendererController {
   getDataSource: () => DataSourceType;
   setP2PEvent: (event: P2PEarthquakeEvent | null) => void;
   setKMAEvent: (event: any | null) => void;
+  // 리플레이 모드: 켜져 있는 동안 실시간 데이터가 지도 진도 점/감지 격자를 덮어쓰지 않는다
+  setReplayMode: (on: boolean) => void;
   cleanup: () => void;
+}
+
+/** 서버 감지 이벤트 히스토리 항목 (GET /api/history, DetectedEventHistoryEntry와 동일 구조) */
+export interface HistoryEntry {
+  id: number;
+  startTs: number;
+  endTs: number;
+  durationSec: number;
+  maxJindo: number | null;
+  maxJindoStr: string;
+  region: string | null;
+  stationName: string | null;
+  center: [number, number] | null;
+  frameCount: number;
+  animation: string | null;
+  replay?: boolean;
 }
 
 export interface WaveStats {

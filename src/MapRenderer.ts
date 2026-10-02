@@ -717,11 +717,17 @@ export class CleanVectorMapRenderer {
         onHover(null);
       });
 
+      // 리플레이 재생 중에는 실시간 데이터가 진도 점/감지 격자를 덮어쓰지 않게 한다
+      let replayActive = false;
+      // 리플레이 해제 시 복원하기 위한 최신 감지 격자
+      let lastGridGeojson: any = null;
+
       // 공통 콜백 정의
       const createDetectionCallbacks = (sourceType: DataSourceType) => ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onPointsUpdated: (updatedGeojson: any) => {
           if (currentDataSource !== sourceType) return;
+          if (replayActive) return;
           const source = map.getSource('intensity-points');
           if (source) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -732,6 +738,8 @@ export class CleanVectorMapRenderer {
         onDetectedUpdated: (detectedGeojson: any) => {
           if (currentDataSource !== sourceType && currentDataSource !== 'p2pquake') return;
           if (currentDataSource === 'p2pquake' && sourceType !== 'kmoni') return;
+          lastGridGeojson = detectedGeojson;
+          if (replayActive) return;
           const source = map.getSource('detected-grids');
           if (source) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -741,6 +749,8 @@ export class CleanVectorMapRenderer {
         onNewEventDetected: (center: [number, number]) => {
           if (currentDataSource !== sourceType && currentDataSource !== 'p2pquake') return;
           if (currentDataSource === 'p2pquake' && sourceType !== 'kmoni') return;
+          // 리플레이 중에는 카메라 이동/알림 등 UI 효과를 억제한다 (감지 상태 자체는 계속 갱신됨)
+          if (replayActive) return;
           if (onKmoniEventDetected) {
             onKmoniEventDetected(center);
           }
@@ -781,15 +791,18 @@ export class CleanVectorMapRenderer {
         onEventsFinished: () => {
           if (currentDataSource !== sourceType && currentDataSource !== 'p2pquake') return;
           if (currentDataSource === 'p2pquake' && sourceType !== 'kmoni') return;
-          
+          // 리플레이 중에는 카메라 복귀/격자 클리어를 억제한다
+          if (replayActive) return;
+
           if (currentDataSource !== 'p2pquake') {
             fitJapanBounds(map, true);
           }
-          
+
+          lastGridGeojson = { type: 'FeatureCollection', features: [] };
           const source = map.getSource('detected-grids');
           if (source) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (source as any).setData({ type: 'FeatureCollection', features: [] });
+            (source as any).setData(lastGridGeojson);
           }
 
           if (onDetectionFinished) {
@@ -800,6 +813,8 @@ export class CleanVectorMapRenderer {
           console.log(`[${sourceType.toUpperCase()} 지진 감지] 예상 진도: ${jindoStr} (${jindo.toFixed(1)})`);
           if (currentDataSource !== sourceType && currentDataSource !== 'p2pquake') return;
           if (currentDataSource === 'p2pquake' && sourceType !== 'kmoni') return;
+          // 리플레이 중에는 알림 팝업/효과음을 억제한다
+          if (replayActive) return;
 
           const currentService = sourceType === 'kmoni' ? kmoniQuakeService : yahooQuakeService;
           const topStns = currentService.getTopStations(1);
@@ -1172,6 +1187,23 @@ export class CleanVectorMapRenderer {
         getDataSource: () => currentDataSource,
         setP2PEvent,
         setKMAEvent,
+        setReplayMode: (on: boolean) => {
+          replayActive = on;
+          if (!on) {
+            // 해제 시 즉시 실시간 상태로 복원 (리플레이 마지막 프레임의 격자/점이 남지 않게)
+            const activeGeojson = currentDataSource === 'kmoni' ? kmoniQuakeService.geojson : yahooQuakeService.geojson;
+            const pts = map.getSource('intensity-points');
+            if (pts && activeGeojson) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (pts as any).setData(activeGeojson);
+            }
+            const grid = map.getSource('detected-grids');
+            if (grid) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (grid as any).setData(lastGridGeojson ?? { type: 'FeatureCollection', features: [] });
+            }
+          }
+        },
         cleanup: () => {
           if (eventSource) {
             eventSource.close();
@@ -1189,6 +1221,7 @@ export class CleanVectorMapRenderer {
         getDataSource: () => currentDataSource,
         setP2PEvent: () => {},
         setKMAEvent: () => {},
+        setReplayMode: () => {},
         cleanup: () => {
           BackgroundSyncService.getInstance().clearWorkerInterval('realtime-station-fetch');
           if (updateInterval) window.clearInterval(updateInterval);
