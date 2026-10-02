@@ -21,6 +21,7 @@ import { Legend } from './components/Legend';
 import { TopDashboard } from './components/TopDashboard';
 import { InfoBadge } from './components/InfoBadge';
 import { P2PQuakeCard } from './components/P2PQuakeCard';
+import { HistoryCard } from './components/HistoryCard';
 
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -512,6 +513,8 @@ export default function App() {
                 handleSelectStation={handleSelectStation}
               />
             )}
+
+            <HistoryCard onFocusEpicenter={handleFocusEpicenter} />
           </div>
 
           {hoverInfo && eewContext.state === EEWState.IDLE && <InfoBadge hoverInfo={hoverInfo} />}

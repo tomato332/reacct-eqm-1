@@ -1727,3 +1727,92 @@
   transition: width 0.1s linear;
 }
 
+
+/* 감지 히스토리 카드 */
+.historyList {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.historyEmpty {
+  padding: 12px 14px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyItemClickable {
+  cursor: pointer;
+}
+
+.historyItemClickable:hover {
+  background-color: var(--surface-subtle);
+}
+
+.historyBadge {
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.historyInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.historyRegion {
+  color: var(--text-primary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyPin {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.historyMeta {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.historyVideoLink {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.historyVideoLink:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-subtle);
+}

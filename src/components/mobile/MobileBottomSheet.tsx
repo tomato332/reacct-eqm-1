@@ -6,6 +6,7 @@ import { P2PEarthquakeEvent, P2PObservationPoint } from '../../P2PQuakeService';
 import { translateRegionName, translatePrefecture, formatObservationPointName } from '../../translateUtils';
 import { ChevronUp, ChevronDown, MapPin, Activity, List, Info } from 'lucide-react';
 import { SystemStatusCard } from '../SystemStatusCard';
+import { HistoryCard } from '../HistoryCard';
 import styles from './MobileView.module.css';
 
 const JMA_SCALES = [
@@ -410,6 +411,9 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
                   alertTitle={alertTitle}
                   defaultExpanded={true}
                 />
+
+                {/* 감지 히스토리 */}
+                <HistoryCard onFocusEpicenter={onFocusEpicenter} />
 
                 {/* 2. JMA 진도 계급 안내 */}
                 <div className={styles.metaTextMuted}>

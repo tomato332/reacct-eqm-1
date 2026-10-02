@@ -83,3 +83,13 @@ export function formatJSTClock(date: Date = new Date()): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${p(jst.getHours())}:${p(jst.getMinutes())}:${p(jst.getSeconds())}`;
 }
+
+/**
+ * 임의 시각을 일본 표준시(JST, UTC+9)의 "MM/DD HH:MM:SS" 문자열로 변환한다.
+ * 감지 히스토리 등 날짜가 함께 필요한 곳에서 사용.
+ */
+export function formatJSTDateTime(date: Date = new Date()): string {
+  const jst = new Date(date.getTime() + (9 * 60 + date.getTimezoneOffset()) * 60000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(jst.getMonth() + 1)}/${p(jst.getDate())} ${formatJSTClock(jst)}`;
+}

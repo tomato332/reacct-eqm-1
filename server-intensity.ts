@@ -1,7 +1,9 @@
 import { INTENSITY_COLORS } from './src/colorMap';
 import { QuakeDetectService } from './src/QuakeDetectService';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { spawn } from 'child_process';
 import { GifReader, GifWriter } from 'omggif';
 
 export interface StationPointMeta {
@@ -22,6 +24,35 @@ export interface IntensityUpdatePayload {
   source: 'kmoni' | 'yahoo';
   dataTime: string;
   intensities: Record<string, number | null>;
+}
+
+/** 감지 이벤트 히스토리 항목 (data/history.json에 저장, GET /api/history로 제공) */
+export interface DetectedEventHistoryEntry {
+  id: number; // 시작 시각 epoch ms
+  startTs: number;
+  endTs: number;
+  durationSec: number;
+  maxJindo: number | null;
+  maxJindoStr: string;
+  region: string | null;
+  stationName: string | null;
+  center: [number, number] | null;
+  frameCount: number;
+  animation: string | null; // data/events/ 아래 파일명
+}
+
+/** 진도 수치 → 계급 문자열 (웹훅/히스토리 공용) */
+export function jindoToStr(jindo: number): string {
+  if (jindo < 0.5) return '0';
+  if (jindo < 1.5) return '1';
+  if (jindo < 2.5) return '2';
+  if (jindo < 3.5) return '3';
+  if (jindo < 4.5) return '4';
+  if (jindo < 5.0) return '5약';
+  if (jindo < 5.5) return '5강';
+  if (jindo < 6.0) return '6약';
+  if (jindo < 6.5) return '6강';
+  return '7';
 }
 
 // RGB to JMA Instrumental Intensity reverse calculation
@@ -135,11 +166,110 @@ export class ServerIntensityAggregator {
   private lastAlertEmbed: any = null;
   private lastSentMapGif: Buffer | null = null;
 
+  // 감지 이벤트 히스토리 (사이트 "감지 히스토리" 카드용, data/history.json 영속화)
+  private eventHistory: DetectedEventHistoryEntry[] = [];
+  private historyDir = path.join(process.cwd(), 'data');
+  // 진행 중인 이벤트의 집계 상태
+  private currentEventStart: number | null = null;
+  private currentEventMaxJindo: number | null = null;
+  private currentEventTopStation: { region: string; name: string } | null = null;
+  private currentEventCenter: [number, number] | null = null;
+
   constructor() {
     this.loadStationList();
+    this.loadHistory();
     this.startPollingLoop();
     this.detectService = new QuakeDetectService();
     this.detectService.initKmoniStations(this.stations);
+  }
+
+  private loadHistory() {
+    try {
+      const p = path.join(this.historyDir, 'history.json');
+      if (fs.existsSync(p)) {
+        const json = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        if (Array.isArray(json?.items)) {
+          this.eventHistory = json.items
+            .filter((e: any) => e && typeof e.id === 'number')
+            .sort((a: DetectedEventHistoryEntry, b: DetectedEventHistoryEntry) => b.id - a.id)
+            .slice(0, 50);
+        }
+      }
+      console.log(`[History] 감지 이벤트 ${this.eventHistory.length}개 로드 완료`);
+    } catch (err) {
+      console.error('[History] 히스토리 로드 실패:', err);
+    }
+  }
+
+  private persistHistory() {
+    try {
+      fs.mkdirSync(this.historyDir, { recursive: true });
+      fs.writeFileSync(path.join(this.historyDir, 'history.json'), JSON.stringify({ items: this.eventHistory }));
+    } catch (err) {
+      console.error('[History] 히스토리 저장 실패:', err);
+    }
+  }
+
+  public getHistory(): DetectedEventHistoryEntry[] {
+    return this.eventHistory;
+  }
+
+  public getAnimationPath(id: number): string | null {
+    const entry = this.eventHistory.find((e) => e.id === id);
+    if (!entry?.animation) return null;
+    const p = path.join(this.historyDir, 'events', entry.animation);
+    return fs.existsSync(p) ? p : null;
+  }
+
+  /** 감지 종료 시 이벤트 기록을 만들어 히스토리에 저장한다 */
+  private recordEventHistory(anim: { buf: Buffer; mime: string; frameCount: number } | null) {
+    if (!anim) return;
+    const now = Date.now();
+    const start = this.currentEventStart ?? now - anim.frameCount * 1000;
+
+    let animation: string | null = null;
+    if (anim.buf?.length) {
+      try {
+        fs.mkdirSync(path.join(this.historyDir, 'events'), { recursive: true });
+        const ext = anim.mime === 'video/mp4' ? 'mp4' : 'gif';
+        animation = `event-${start}.${ext}`;
+        fs.writeFileSync(path.join(this.historyDir, 'events', animation), anim.buf);
+      } catch (err) {
+        console.error('[History] 애니메이션 저장 실패:', err);
+      }
+    }
+
+    const entry: DetectedEventHistoryEntry = {
+      id: start,
+      startTs: start,
+      endTs: now,
+      durationSec: Math.max(1, Math.round((now - start) / 1000)),
+      maxJindo: this.currentEventMaxJindo,
+      maxJindoStr: this.currentEventMaxJindo !== null ? jindoToStr(this.currentEventMaxJindo) : '알 수 없음',
+      region: this.currentEventTopStation?.region ?? null,
+      stationName: this.currentEventTopStation?.name ?? null,
+      center: this.currentEventCenter,
+      frameCount: anim.frameCount,
+      animation,
+    };
+    this.eventHistory.unshift(entry);
+    if (this.eventHistory.length > 50) this.eventHistory.length = 50;
+    this.persistHistory();
+    console.log(`[History] 감지 이벤트 기록: ${new Date(start).toISOString()} 최대 ${entry.maxJindoStr} (${this.eventHistory.length}번째)`);
+
+    this.currentEventStart = null;
+    this.currentEventMaxJindo = null;
+    this.currentEventTopStation = null;
+    this.currentEventCenter = null;
+  }
+
+  /** 진행 중인 이벤트의 최대 진도/관측소를 갱신한다 */
+  private updateCurrentEventStats() {
+    const top = this.detectService?.getTopStations(1)?.[0];
+    if (top && top.jindo !== null && (this.currentEventMaxJindo === null || top.jindo > this.currentEventMaxJindo)) {
+      this.currentEventMaxJindo = top.jindo;
+      this.currentEventTopStation = { region: top.region, name: top.name };
+    }
   }
 
   /**
@@ -263,25 +393,25 @@ export class ServerIntensityAggregator {
    * 각 프레임 위에는 감지 활성 시점의 격자(lastActiveGridGeojson)를 그린다.
    * 프레임은 초당 1장이므로 GIF 딜레이는 100(=1초) 단위.
    */
-  private buildEventAnimationGif(): Buffer | null {
-    if (this.eventFrameBuffer.length === 0) return null;
+  private buildEventAnimationGif(frames: { timeStr: string; gif: Buffer }[]): Buffer | null {
+    if (frames.length === 0) return null;
     const gridFeatures = this.lastActiveGridGeojson?.features ?? [];
     try {
-      const frames: { indices: Uint8Array; palette: number[] }[] = [];
+      const encoded: { indices: Uint8Array; palette: number[] }[] = [];
       let width = 0, height = 0;
 
-      for (const { gif } of this.eventFrameBuffer) {
+      for (const { gif } of frames) {
         const frame = this.compositeFrame(gif, gridFeatures);
         if (!frame) continue;
         width = frame.width;
         height = frame.height;
-        frames.push({ indices: frame.indices, palette: frame.palette });
+        encoded.push({ indices: frame.indices, palette: frame.palette });
       }
-      if (frames.length === 0) return null;
+      if (encoded.length === 0) return null;
 
-      const outBuf = new Uint8Array(frames.length * (width * height + 768) + 4096);
+      const outBuf = new Uint8Array(encoded.length * (width * height + 768) + 4096);
       const writer = new GifWriter(outBuf as any, width, height, { loop: 0 } as any);
-      for (const f of frames) {
+      for (const f of encoded) {
         writer.addFrame(0, 0, width, height, f.indices, { palette: f.palette, delay: 100 } as any);
       }
       const len = writer.end();
@@ -289,6 +419,97 @@ export class ServerIntensityAggregator {
     } catch (err) {
       console.error('[Webhook] 감지 구간 애니메이션 생성 실패:', err);
       return null;
+    }
+  }
+
+  /**
+   * 감지 구간 프레임을 ffmpeg로 mp4(H.264)로 인코딩한다. GIF보다 용량이 훨씬 작다.
+   * rawvideo(rgb24)를 파이프로 넘기고 임시 파일로 받는다(+faststart에는 seekable 출력 필요).
+   * ffmpeg가 없거나 실패하면 null을 반환하며, 호출부는 GIF로 폴백한다.
+   */
+  private async buildEventAnimationMp4(frames: { timeStr: string; gif: Buffer }[]): Promise<Buffer | null> {
+    if (frames.length === 0) return null;
+    const gridFeatures = this.lastActiveGridGeojson?.features ?? [];
+
+    const composited: { indices: Uint8Array; palette: number[] }[] = [];
+    let width = 0, height = 0;
+    for (const { gif } of frames) {
+      const frame = this.compositeFrame(gif, gridFeatures);
+      if (!frame) continue;
+      width = frame.width;
+      height = frame.height;
+      composited.push(frame);
+    }
+    if (composited.length === 0) return null;
+
+    // 인덱스 + 팔레트 -> rgb24 raw 스트림
+    const rgb = Buffer.alloc(width * height * 3);
+    const tmpPath = path.join(os.tmpdir(), `eqm-event-${Date.now()}.mp4`);
+    try {
+      const inner = new Promise<Buffer | null>((resolve) => {
+        const ff = spawn('ffmpeg', [
+          '-y',
+          '-f', 'rawvideo', '-pix_fmt', 'rgb24',
+          '-s', `${width}x${height}`, '-r', '1',
+          '-i', 'pipe:0',
+          // yuv420p는 짝수 크기만 허용하므로 홀수일 때 잘라낸다
+          '-vf', 'crop=trunc(iw/2)*2:trunc(ih/2)*2',
+          '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
+          '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
+          tmpPath,
+        ], { stdio: ['pipe', 'ignore', 'pipe'] });
+
+        let stderr = '';
+        ff.stderr.on('data', (d) => { stderr += d; if (stderr.length > 8000) stderr = stderr.slice(-4000); });
+
+        ff.on('error', (err) => {
+          console.warn('[Webhook] ffmpeg 실행 불가 (GIF로 폴백):', (err as NodeJS.ErrnoException).code ?? err);
+          resolve(null);
+        });
+
+        // stdin 배압(backpressure) 처리: drain을 기다리며 순서 보장
+        let i = 0;
+        let failed = false;
+        const writeNext = () => {
+          if (failed) return;
+          while (i < composited.length) {
+            const f = composited[i++];
+            // compositeFrame의 팔레트는 24비트 정수(r<<16|g<<8|b) 배열
+            for (let p = 0; p < width * height; p++) {
+              const key = f.palette[f.indices[p]] | 0;
+              rgb[p * 3] = (key >> 16) & 0xff;
+              rgb[p * 3 + 1] = (key >> 8) & 0xff;
+              rgb[p * 3 + 2] = key & 0xff;
+            }
+            const ok = ff.stdin.write(rgb);
+            if (!ok) {
+              ff.stdin.once('drain', writeNext);
+              return;
+            }
+          }
+          ff.stdin.end();
+        };
+        ff.stdin.on('error', () => { failed = true; });
+
+        ff.on('close', (code) => {
+          if (code === 0 && fs.existsSync(tmpPath)) {
+            try {
+              resolve(fs.readFileSync(tmpPath));
+            } catch {
+              resolve(null);
+            }
+          } else {
+            console.warn(`[Webhook] ffmpeg mp4 인코딩 실패 (code=${code}) GIF로 폴백:`, stderr.split('\n').slice(-3).join(' | '));
+            resolve(null);
+          }
+        });
+
+        writeNext();
+      });
+      // 변수에 담아 await해야 반환값이 유실되지 않는다 (tsx/esbuild 하의 직접 await 반환은 undefined가 될 수 있음)
+      return (await inner) as Buffer | null;
+    } finally {
+      try { fs.unlinkSync(tmpPath); } catch {}
     }
   }
 
@@ -309,16 +530,7 @@ export class ServerIntensityAggregator {
     let r = 148, g = 163, b = 184; // Fallback gray
 
     if (maxJindo !== null) {
-      if (maxJindo < 0.5) jindoStr = '0';
-      else if (maxJindo < 1.5) jindoStr = '1';
-      else if (maxJindo < 2.5) jindoStr = '2';
-      else if (maxJindo < 3.5) jindoStr = '3';
-      else if (maxJindo < 4.5) jindoStr = '4';
-      else if (maxJindo < 5.0) jindoStr = '5약';
-      else if (maxJindo < 5.5) jindoStr = '5강';
-      else if (maxJindo < 6.0) jindoStr = '6약';
-      else if (maxJindo < 6.5) jindoStr = '6강';
-      else jindoStr = '7';
+      jindoStr = jindoToStr(maxJindo);
 
       let minDiff = Infinity;
       let closest = INTENSITY_COLORS[0];
@@ -416,25 +628,31 @@ export class ServerIntensityAggregator {
    * 즉시 알림 메시지가 있으면 그 메시지를 "수정(PATCH)"해 리포트 임베드를 옆에 붙이고,
    * 없으면 별도 메시지로 발송한다. 60초 쿨타임을 적용하지 않는다.
    */
-  private async sendEventAnimationWebhook() {
+  private async sendEventAnimationWebhook(): Promise<{ buf: Buffer; mime: string; frameCount: number } | null> {
     const webhookUrl = process.env.WEBHOOK_URL;
-    if (!webhookUrl) return;
-    if (this.eventFrameBuffer.length === 0) return;
+    if (!webhookUrl) return null;
+    if (this.eventFrameBuffer.length === 0) return null;
 
-    // 버퍼를 먼저 사용해 GIF를 만든 뒤 비운다 (비우고 만들면 항상 실패함)
-    const animationGif = this.buildEventAnimationGif();
+    // 버퍼를 먼저 확보해 비운다 (비우고 만들면 항상 실패함)
     const frames = this.eventFrameBuffer;
     this.eventFrameBuffer = []; // 전송 여부와 무관하게 버퍼는 비운다 (다음 이벤트 대비)
-    if (!animationGif) {
-      console.warn(`[Webhook] 애니메이션 GIF 생성 실패로 발송 생략 (버퍼 ${frames.length}프레임)`);
-      return;
+
+    // mp4 우선, ffmpeg 없으면 GIF 폴백
+    const animationMp4 = await this.buildEventAnimationMp4(frames);
+    const isMp4 = animationMp4 !== null;
+    const animationBuf = animationMp4 ?? this.buildEventAnimationGif(frames);
+    if (!animationBuf) {
+      console.warn(`[Webhook] 애니메이션 생성 실패로 발송 생략 (버퍼 ${frames.length}프레임)`);
+      return null;
     }
+    const animationFilename = isMp4 ? 'event.mp4' : 'event.gif';
+    const animationMime = isMp4 ? 'video/mp4' : 'image/gif';
 
     const firstTime = frames[0].timeStr;
     const lastTime = frames[frames.length - 1].timeStr;
     const durationSec = frames.length;
 
-    const reportEmbed = {
+    const reportEmbed: any = {
       title: "🎞️ 흔들림 감지 구간 리포트",
       description: `감지가 유지된 구간의 실시간 지도 애니메이션입니다.`,
       color: 0xef4444,
@@ -444,7 +662,8 @@ export class ServerIntensityAggregator {
       ],
       timestamp: new Date().toISOString()
     };
-    reportEmbed.image = { url: 'attachment://event.gif' };
+    // mp4는 임베드 이미지로 재생되지 않으므로 첨부 플레이어에 맡긴다
+    if (!isMp4) reportEmbed.image = { url: 'attachment://event.gif' };
 
     try {
       const controller = new AbortController();
@@ -458,13 +677,13 @@ export class ServerIntensityAggregator {
           embeds: [this.lastAlertEmbed, reportEmbed],
           attachments: [
             { id: 0, filename: 'map.gif' },
-            { id: 1, filename: 'event.gif' }
+            { id: 1, filename: animationFilename }
           ]
         };
         const form = new FormData();
         form.append('payload_json', JSON.stringify(patchPayload));
         form.append('files[0]', new Blob([new Uint8Array(this.lastSentMapGif)], { type: 'image/gif' }), 'map.gif');
-        form.append('files[1]', new Blob([new Uint8Array(animationGif)], { type: 'image/gif' }), 'event.gif');
+        form.append('files[1]', new Blob([new Uint8Array(animationBuf)], { type: animationMime }), animationFilename);
         res = await fetch(`${webhookUrl}/messages/${this.lastAlertMessageId}`, {
           method: 'PATCH',
           body: form,
@@ -474,7 +693,7 @@ export class ServerIntensityAggregator {
         // 알림 메시지를 못 받았으면(쿨타임 억제 등) 별도 메시지로 발송
         const form = new FormData();
         form.append('payload_json', JSON.stringify({ embeds: [reportEmbed] }));
-        form.append('files[0]', new Blob([new Uint8Array(animationGif)], { type: 'image/gif' }), 'event.gif');
+        form.append('files[0]', new Blob([new Uint8Array(animationBuf)], { type: animationMime }), animationFilename);
         res = await fetch(webhookUrl, { method: 'POST', body: form, signal: controller.signal });
       }
       clearTimeout(timeout);
@@ -486,11 +705,13 @@ export class ServerIntensityAggregator {
       if (!res.ok) {
         console.error(`[Webhook] 애니메이션 발송 오류: ${res.status} ${res.statusText}`);
       } else {
-        console.log(`[Webhook] 감지 구간 리포트 발송 완료 (${frames.length}프레임, ${(animationGif.length / 1024).toFixed(0)}KB)`);
+        console.log(`[Webhook] 감지 구간 리포트 발송 완료 (${frames.length}프레임, ${isMp4 ? 'mp4' : 'gif'} ${(animationBuf.length / 1024).toFixed(0)}KB)`);
       }
     } catch (err) {
       console.error(`[Webhook] 애니메이션 발송 실패:`, err);
     }
+    // 발송 성공 여부와 무관하게 만들어진 애니메이션을 반환 (히스토리 저장용)
+    return { buf: animationBuf, mime: animationMime, frameCount: frames.length };
   }
 
   private loadStationList() {
@@ -554,7 +775,7 @@ export class ServerIntensityAggregator {
               this.lastActiveGridGeojson = gridGeojson;
             }
           },
-          onNewEventDetected: () => {
+          onNewEventDetected: (center: [number, number]) => {
             // 감지 구간 프레임 버퍼링 시작 (진행 중이면 유지)
             if (!this.isEventBuffering) {
               this.isEventBuffering = true;
@@ -563,18 +784,27 @@ export class ServerIntensityAggregator {
               this.lastAlertMessageId = null;
               this.lastAlertEmbed = null;
               this.lastSentMapGif = null;
+              // 히스토리 집계 시작
+              this.currentEventStart = Date.now();
+              this.currentEventMaxJindo = null;
+              this.currentEventTopStation = null;
+              this.currentEventCenter = center ?? null;
               console.log('[Webhook] 감지 구간 프레임 버퍼링 시작');
             }
+            this.updateCurrentEventStats();
             this.triggerWebhook(payload.source, true);
           },
           onSoundTriggered: () => {
+            this.updateCurrentEventStats();
             // 진도가 상승하여 알림 조건이 충족될 때 진도 기준 없이 웹훅 전송 (60초 쿨타임 적용됨)
             this.triggerWebhook(payload.source, false);
           },
           // 감지가 모두 만료되면 구간 애니메이션 GIF를 웹훅으로 발송
           onEventsFinished: () => {
             this.isEventBuffering = false;
-            this.sendEventAnimationWebhook().catch(() => {});
+            this.sendEventAnimationWebhook()
+              .then((anim) => { this.recordEventHistory(anim); })
+              .catch(() => {});
           }
         });
       } catch (err) {

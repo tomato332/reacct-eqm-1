@@ -228,6 +228,24 @@ export function createApp() {
   });
 
   // 알 수 없는 /api 경로는 SPA 폴백(HTML 200) 대신 404 JSON으로 응답
+  // 4. 감지 이벤트 히스토리 (사이트 "감지 히스토리" 카드용)
+  app.get("/api/history", (req, res) => {
+    res.json({ items: aggregator.getHistory() });
+  });
+
+  // 5. 감지 이벤트 리포트 애니메이션 (mp4/gif) 파일
+  app.get("/api/history/:id/animation", (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+    const filePath = aggregator.getAnimationPath(id);
+    if (!filePath) {
+      return res.status(404).json({ error: "Not found" });
+    }
+    res.sendFile(filePath);
+  });
+
   app.use('/api', (req, res) => {
     res.status(404).json({ error: "Not found" });
   });

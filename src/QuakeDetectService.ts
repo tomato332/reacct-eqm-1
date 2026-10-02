@@ -18,6 +18,8 @@ export interface StationData {
   color: string;
   intensityCode: number;
   rawJindoHistory?: number[];
+  // 데이터 결손(프레임 누락 등) 유예 카운터: 유예 동안은 마지막 값 유지
+  nullStreak?: number;
 }
 
 export interface TopStationItem {
@@ -214,8 +216,22 @@ export class QuakeDetectService {
     for (const feature of this.geojson.features) {
       const codeStr = feature.properties.code;
       const jindo = isMap ? (intensityMap.has(codeStr) ? intensityMap.get(codeStr)! : null) : (intensityMap[codeStr] ?? null);
-      const newColor = jindo !== null ? getExactJindoColor(jindo) : 'transparent';
-      const intensityCode = jindo !== null ? Math.round((jindo + 3.0) * 2 + 100) : -1;
+
+      // 프레임 일부에서 값 추출이 실패하면(다운로드 지연/재시도 등) 점이 사라졌다 다시 나타난다.
+      // 3프레임(약 3초)까지는 마지막 값을 유지해 깜빡임을 막는다.
+      const stn = this.stationsState.get(codeStr);
+      let effectiveJindo = jindo;
+      if (stn) {
+        if (jindo === null) {
+          stn.nullStreak = (stn.nullStreak ?? 0) + 1;
+          if (stn.nullStreak <= 3 && stn.jindo !== null) effectiveJindo = stn.jindo;
+        } else {
+          stn.nullStreak = 0;
+        }
+      }
+
+      const newColor = effectiveJindo !== null ? getExactJindoColor(effectiveJindo) : 'transparent';
+      const intensityCode = effectiveJindo !== null ? Math.round((effectiveJindo + 3.0) * 2 + 100) : -1;
 
       if (feature.properties.color !== newColor || feature.properties.intensityCode !== intensityCode) {
         feature.properties.color = newColor;
@@ -224,12 +240,11 @@ export class QuakeDetectService {
       }
 
       if (this.detectEnabled) {
-        const stn = this.stationsState.get(codeStr);
         if (stn) {
           stn.color = newColor;
           stn.intensityCode = intensityCode;
-          if (jindo !== null) {
-            const filteredJindo = this.noiseFilter.applyMedianFilter(stn, jindo);
+          if (effectiveJindo !== null) {
+            const filteredJindo = this.noiseFilter.applyMedianFilter(stn, effectiveJindo);
 
             let delta = 0;
             if (stn.jindo !== null) {
@@ -238,7 +253,7 @@ export class QuakeDetectService {
             stn.jindo = filteredJindo;
             stn.delta.unshift(delta);
             if (stn.delta.length > 10) stn.delta.pop();
-            
+
             stn.deltaSum = stn.delta.reduce((acc, val) => acc + val, 0);
           } else {
             stn.jindo = null;
@@ -274,8 +289,21 @@ export class QuakeDetectService {
       const charCode = intensityStr.charCodeAt(id);
       
       const jindo = this.charCodeToJindo(charCode);
-      const newColor = jindo !== null ? getExactJindoColor(jindo) : 'transparent';
-      const intensityCode = jindo !== null ? charCode : -1;
+
+      // 결손 유예: 3프레임까지 마지막 값 유지 (processKmoniParsedData와 동일)
+      const stn = this.stationsState.get(codeStr);
+      let effectiveJindo = jindo;
+      if (stn) {
+        if (jindo === null) {
+          stn.nullStreak = (stn.nullStreak ?? 0) + 1;
+          if (stn.nullStreak <= 3 && stn.jindo !== null) effectiveJindo = stn.jindo;
+        } else {
+          stn.nullStreak = 0;
+        }
+      }
+
+      const newColor = effectiveJindo !== null ? getExactJindoColor(effectiveJindo) : 'transparent';
+      const intensityCode = effectiveJindo !== null ? charCode : -1;
 
       if (feature.properties.color !== newColor || feature.properties.intensityCode !== intensityCode) {
         feature.properties.color = newColor;
@@ -284,10 +312,10 @@ export class QuakeDetectService {
       }
 
       if (this.detectEnabled) {
-        const stn = this.stationsState.get(codeStr);
         if (stn) {
           stn.color = newColor;
-          if (jindo !== null) {
+          stn.intensityCode = intensityCode;
+          if (effectiveJindo !== null) {
             // 노이즈 필터 적용 (SRP 분리: 3프레임 미디언 필터로 글리치 완전 제거)
             const filteredJindo = this.noiseFilter.applyMedianFilter(stn, jindo);
 

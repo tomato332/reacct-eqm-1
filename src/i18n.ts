@@ -60,6 +60,14 @@ export const resources = {
         empty: '지진 정보가 없습니다',
         scale: '진도 {{scale}}',
       },
+      history: {
+        title: '감지 히스토리',
+        empty: '아직 감지 기록이 없습니다',
+        maxIntensity: '최대진도',
+        duration: '{{sec}}초간 감지',
+        video: '리포트 영상',
+        loadFailed: '기록을 불러올 수 없습니다',
+      },
       eew: {
         title: '긴급지진속보 (EEW)',
         unknownEpicenter: '진원지 불명',
@@ -193,6 +201,14 @@ export const resources = {
         empty: 'No earthquake data',
         scale: 'Intensity {{scale}}',
       },
+      history: {
+        title: 'Detection History',
+        empty: 'No detections recorded yet',
+        maxIntensity: 'Max Intensity',
+        duration: 'Detected for {{sec}}s',
+        video: 'Report video',
+        loadFailed: 'Failed to load history',
+      },
       eew: {
         title: 'Earthquake Early Warning (EEW)',
         unknownEpicenter: 'Unknown Epicenter',
@@ -325,6 +341,14 @@ export const resources = {
         focusEpicenter: '震源地にフォーカス',
         empty: '地震情報はありません',
         scale: '震度 {{scale}}',
+      },
+      history: {
+        title: '検知履歴',
+        empty: 'まだ検知記録がありません',
+        maxIntensity: '最大震度',
+        duration: '{{sec}}秒間検知',
+        video: 'レポート動画',
+        loadFailed: '履歴を読み込めません',
       },
       eew: {
         title: '緊急地震速報 (EEW)',
