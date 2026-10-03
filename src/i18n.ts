@@ -70,6 +70,9 @@ export const resources = {
         replayUnavailable: '리플레이 데이터가 없습니다',
         loadFailed: '기록을 불러올 수 없습니다',
       },
+      dataDelay: {
+        title: '데이터 지연',
+      },
       eew: {
         title: '긴급지진속보 (EEW)',
         unknownEpicenter: '진원지 불명',
@@ -213,6 +216,9 @@ export const resources = {
         replayUnavailable: 'Replay data unavailable',
         loadFailed: 'Failed to load history',
       },
+      dataDelay: {
+        title: 'Data delayed',
+      },
       eew: {
         title: 'Earthquake Early Warning (EEW)',
         unknownEpicenter: 'Unknown Epicenter',
@@ -355,6 +361,9 @@ export const resources = {
         replay: '検知リプレイ',
         replayUnavailable: 'リプレイデータがありません',
         loadFailed: '履歴を読み込めません',
+      },
+      dataDelay: {
+        title: 'データ遅延',
       },
       eew: {
         title: '緊急地震速報 (EEW)',

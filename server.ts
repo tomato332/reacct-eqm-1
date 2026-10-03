@@ -228,6 +228,17 @@ export function createApp() {
   });
 
   // 알 수 없는 /api 경로는 SPA 폴백(HTML 200) 대신 404 JSON으로 응답
+  // 0. 헬스체크 (외부 uptime 모니터 + kmoni 수신 상태)
+  app.get("/api/health", (req, res) => {
+    const kmoni = aggregator.getKmoniHealth();
+    res.json({
+      ok: kmoni.ok,
+      uptimeSec: Math.round(process.uptime()),
+      memoryMb: Math.round(process.memoryUsage().rss / 1048576),
+      kmoni,
+    });
+  });
+
   // 4. 감지 이벤트 히스토리 (사이트 "감지 히스토리" 카드용)
   app.get("/api/history", (req, res) => {
     res.json({ items: aggregator.getHistory() });

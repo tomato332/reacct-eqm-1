@@ -155,6 +155,11 @@ export class ServerIntensityAggregator {
   private webhookCooldown = 0;
   private lastKmoniGif: Buffer | null = null; // 웹훅 지도 첨부용
 
+  // kmoni 수신 상태 (/api/health 및 지연 판정용)
+  private lastKmoniSuccessAt = 0;
+  private lastKmoniDataTime = '';
+  private kmoniConsecutiveFailures = 0;
+
   // 감지 구간 애니메이션 GIF용: 이벤트 활성 동안 초당 프레임 버퍼
   // grid에는 해당 시점의 감지 격자(lastActiveGridGeojson) 참조를 함께 보관한다 (리플레이용)
   private eventFrameBuffer: { timeStr: string; gif: Buffer; grid: any }[] = [];
@@ -217,6 +222,22 @@ export class ServerIntensityAggregator {
 
   public getHistory(): DetectedEventHistoryEntry[] {
     return this.eventHistory;
+  }
+
+  /**
+   * kmoni 원본 프레임 수신 상태. 마지막 성공 후 30초 이상 경과하면 지연으로 판정한다.
+   */
+  public getKmoniHealth() {
+    const secondsSinceSuccess = this.lastKmoniSuccessAt
+      ? Math.round((Date.now() - this.lastKmoniSuccessAt) / 1000)
+      : null;
+    const ok = secondsSinceSuccess !== null && secondsSinceSuccess < 30;
+    return {
+      ok,
+      lastDataTime: this.lastKmoniDataTime || null,
+      secondsSinceSuccess,
+      consecutiveFailures: this.kmoniConsecutiveFailures,
+    };
   }
 
   public getAnimationPath(id: number): string | null {
@@ -977,6 +998,9 @@ export class ServerIntensityAggregator {
           finalTimeStr = timeStr;
           this.lastKmoniGif = buffer;
           this.kmoniOptimalDelay = delay; // 다음 루프 최적 딜레이 캐싱
+          this.lastKmoniSuccessAt = Date.now();
+          this.lastKmoniDataTime = finalTimeStr;
+          this.kmoniConsecutiveFailures = 0;
 
           // 감지 구간 프레임 수집 (중복 타임스탬프 방지)
           // 최대치를 넘으면 뒤쪽을 버리고 시작 부분을 유지한다 — 리포트에 감지 시작이 담기도록
@@ -1000,7 +1024,10 @@ export class ServerIntensityAggregator {
       } catch {}
     }
 
-    if (!buffer) return;
+    if (!buffer) {
+      this.kmoniConsecutiveFailures++;
+      return;
+    }
 
     const intensities = this.parseIntensityMap(buffer);
 

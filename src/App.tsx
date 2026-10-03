@@ -23,6 +23,7 @@ import { InfoBadge } from './components/InfoBadge';
 import { P2PQuakeCard } from './components/P2PQuakeCard';
 import { HistoryCard } from './components/HistoryCard';
 import { ReplayViewer } from './components/ReplayViewer';
+import { DataDelayBadge } from './components/DataDelayBadge';
 
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -441,6 +442,8 @@ export default function App() {
   return (
     <div className={`${styles.container} ${isDarkMode ? styles.dark : ''}`}>
       <div ref={containerRef} className={styles.map} />
+
+      <DataDelayBadge />
 
       {isMobile ? (
         <div className={mobileStyles.mobileRoot}>

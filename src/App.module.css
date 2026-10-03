@@ -1885,3 +1885,50 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   Data Delay Badge (실시간 데이터 수신 지연 경고)
+   ========================================================================== */
+
+.dataDelayBadge {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: var(--surface);
+  border: 1px solid #f59e0b;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.dataDelayBadge.dataDelayOffline {
+  border-color: #ef4444;
+  color: #b91c1c;
+}
+
+.dataDelayDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  animation: dataDelayPulse 1.2s ease-in-out infinite;
+}
+
+.dataDelayOffline .dataDelayDot {
+  background-color: #ef4444;
+}
+
+@keyframes dataDelayPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
