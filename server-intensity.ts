@@ -161,7 +161,10 @@ export class ServerIntensityAggregator {
   private isEventBuffering = false;
   // 감지 활성 마지막 시점의 격자(종료 시에는 비어버리므로 별도 보관) — 애니메이션 위에 그림
   private lastActiveGridGeojson: any = null;
-  private static readonly MAX_EVENT_FRAMES = 90; // 최대 90초 분량
+  private static readonly MAX_EVENT_FRAMES = 300; // 최대 300초(5분) 분량 — 감지 시작 부분이 잘리지 않도록 충분히 크게
+  // 감지 확정 이전 프레임 프리롤(리플레이/리포트 앞에 붙임): 판정 지연으로 흔들림 시작이 잘리지 않게
+  private static readonly RECENT_FRAME_RING = 15;
+  private recentFrameRing: { timeStr: string; gif: Buffer; grid: any }[] = [];
 
   // 즉시 알림 메시지를 감지 종료 시 수정(리포트 추가)하기 위한 상태
   private lastAlertMessageId: string | null = null;
@@ -714,15 +717,19 @@ export class ServerIntensityAggregator {
    * 감지 구간 종료 시 애니메이션 리포트를 웹훅으로 보낸다.
    * 즉시 알림 메시지가 있으면 그 메시지를 "수정(PATCH)"해 리포트 임베드를 옆에 붙이고,
    * 없으면 별도 메시지로 발송한다. 60초 쿨타임을 적용하지 않는다.
+   * frames에는 프리롤(감지 확정 이전 프레임)이 포함된 전체 구간을 넘긴다.
    */
-  private async sendEventAnimationWebhook(): Promise<{ buf: Buffer; mime: string; frameCount: number } | null> {
+  private async sendEventAnimationWebhook(
+    frames: { timeStr: string; gif: Buffer; grid: any }[] = this.eventFrameBuffer
+  ): Promise<{ buf: Buffer; mime: string; frameCount: number } | null> {
     const webhookUrl = process.env.WEBHOOK_URL;
     if (!webhookUrl) return null;
-    if (this.eventFrameBuffer.length === 0) return null;
+    if (frames.length === 0) return null;
 
-    // 버퍼를 먼저 확보해 비운다 (비우고 만들면 항상 실패함)
-    const frames = this.eventFrameBuffer;
-    this.eventFrameBuffer = []; // 전송 여부와 무관하게 버퍼는 비운다 (다음 이벤트 대비)
+    // 기본값으로 버퍼를 썼다면 비운다 (전송 여부와 무관하게 비워야 다음 이벤트 대비 가능)
+    if (frames === this.eventFrameBuffer) {
+      this.eventFrameBuffer = [];
+    }
 
     // mp4 우선, ffmpeg 없으면 GIF 폴백
     const animationMp4 = await this.buildEventAnimationMp4(frames);
@@ -889,11 +896,15 @@ export class ServerIntensityAggregator {
           // 감지가 모두 만료되면 구간 애니메이션 GIF를 웹훅으로 발송 + 리플레이 데이터 저장
           onEventsFinished: () => {
             this.isEventBuffering = false;
-            // sendEventAnimationWebhook이 버퍼를 비우므로 리플레이용 스냅샷을 먼저 떠둔다
-            const replayFrames = this.eventFrameBuffer.map((f) => ({ timeStr: f.timeStr, gif: f.gif, grid: f.grid }));
-            this.sendEventAnimationWebhook()
-              .then((anim) => { this.recordEventHistory(anim, replayFrames); })
-              .catch(() => { this.recordEventHistory(null, replayFrames); });
+            // 프리롤(감지 확정 이전 프레임)을 앞에 붙여 흔들림 시작 직전부터 담는다
+            const firstTimeStr = this.eventFrameBuffer[0]?.timeStr;
+            const preRoll = firstTimeStr
+              ? this.recentFrameRing.filter((f) => f.timeStr < firstTimeStr)
+              : [];
+            const fullFrames = [...preRoll, ...this.eventFrameBuffer];
+            this.sendEventAnimationWebhook(fullFrames)
+              .then((anim) => { this.recordEventHistory(anim, fullFrames); })
+              .catch(() => { this.recordEventHistory(null, fullFrames); });
           }
         });
       } catch (err) {
@@ -967,14 +978,21 @@ export class ServerIntensityAggregator {
           this.lastKmoniGif = buffer;
           this.kmoniOptimalDelay = delay; // 다음 루프 최적 딜레이 캐싱
 
-          // 감지 구간 프레임 수집 (중복 타임스탬프 방지, 최대치 초과 시 오래된 것부터 폐기)
+          // 감지 구간 프레임 수집 (중복 타임스탬프 방지)
+          // 최대치를 넘으면 뒤쪽을 버리고 시작 부분을 유지한다 — 리포트에 감지 시작이 담기도록
           if (this.isEventBuffering) {
             const last = this.eventFrameBuffer[this.eventFrameBuffer.length - 1];
-            if (!last || last.timeStr !== finalTimeStr) {
+            if ((!last || last.timeStr !== finalTimeStr) && this.eventFrameBuffer.length < ServerIntensityAggregator.MAX_EVENT_FRAMES) {
               this.eventFrameBuffer.push({ timeStr: finalTimeStr, gif: buffer, grid: this.lastActiveGridGeojson });
-              if (this.eventFrameBuffer.length > ServerIntensityAggregator.MAX_EVENT_FRAMES) {
-                this.eventFrameBuffer.shift();
-              }
+            }
+          }
+
+          // 프리롤: 감지 여부와 무관하게 최근 15초분 상시 보관 (감지 판정 지연분 커버)
+          const ringLast = this.recentFrameRing[this.recentFrameRing.length - 1];
+          if (!ringLast || ringLast.timeStr !== finalTimeStr) {
+            this.recentFrameRing.push({ timeStr: finalTimeStr, gif: buffer, grid: this.lastActiveGridGeojson });
+            if (this.recentFrameRing.length > ServerIntensityAggregator.RECENT_FRAME_RING) {
+              this.recentFrameRing.shift();
             }
           }
           break;
