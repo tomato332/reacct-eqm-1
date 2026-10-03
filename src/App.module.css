@@ -1417,6 +1417,17 @@
   border-color: #0f172a;
 }
 
+/* 장주기 지진동 관측점 (lmoni, 계급 1 이상 표시) */
+.colorLpPoint {
+  width: 12px;
+  height: 12px;
+  background-color: #ff9900;
+  border: 2px solid #fbbf24;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.85;
+}
+
 .colorPoint {
   width: 10px;
   height: 10px;
@@ -1732,7 +1743,7 @@
 .historyList {
   display: flex;
   flex-direction: column;
-  max-height: 260px;
+  max-height: 340px;
   overflow-y: auto;
 }
 
@@ -1931,4 +1942,42 @@
 @keyframes dataDelayPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
+}
+
+/* ==========================================================================
+   Long-Period Ground Motion Badge (장주기 지진동 계급 배지)
+   ========================================================================== */
+
+.lpBadge {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: var(--surface);
+  border: 1px solid #7c3aed;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.lpBadgeClass {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 6px;
+  background-color: #7c3aed;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
 }

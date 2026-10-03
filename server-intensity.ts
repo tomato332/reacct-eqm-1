@@ -26,6 +26,104 @@ export interface IntensityUpdatePayload {
   intensities: Record<string, number | null>;
 }
 
+/** 장주기 지진동(lmoni abrspmx) 페이로드. lp는 계급 0~4, null=데이터 없음. lpColors는 지도 점 표시색 */
+export interface LpUpdatePayload {
+  timestamp: number;
+  source: 'lmoni';
+  dataTime: string;
+  lp: Record<string, number | null>;
+  lpColors: Record<string, string | null>;
+}
+
+/** SSE로 내보내는 페이로드 (진도 또는 장주기) */
+export type SsePayload = IntensityUpdatePayload | LpUpdatePayload;
+
+/**
+ * 장주기 지진동(lmoni) 색 판정.
+ *
+ * lmoni 지도 점은 Sva(절대속도응답스펙트럼, cm/s) 로그 무지개 스케일로 칠해진다:
+ * 파랑(낮음) → 청록 → 초록 → 노랑 → 주황 → 빨강(높음).
+ * 색상(hue)이 Sva에 대해 단조 감소하므로, 레전드 바(1000~0.001 cm/s, 19레벨)에서
+ * 추출한 (hue ↔ log10 Sva) 앵커로 보간해 Sva를 역산한 뒤 기상청 기준표로 계급을 정한다.
+ * 기상청 공식 기준: 계급1 5≤Sva<15, 2: 15≤Sva<50, 3: 50≤Sva<100, 4: 100≤Sva (cm/s)
+ */
+// 레전드 바(nied_abrspmx_s_w_scale.png)에서 샘플한 19레벨 앵커 [Sva(cm/s), RGB]
+const LP_SVA_ANCHORS: [number, number, number, number][] = [
+  [1000, 173, 0, 0],
+  [300, 204, 0, 0],
+  [200, 235, 17, 0],
+  [100, 255, 34, 0],
+  [50, 255, 60, 0],
+  [20, 255, 85, 0],
+  [10, 255, 111, 0],
+  [5, 255, 153, 0],
+  [2, 255, 196, 0],
+  [1, 255, 213, 0],
+  [0.5, 255, 255, 0],
+  [0.2, 255, 255, 0],
+  [0.1, 255, 255, 0],
+  [0.05, 214, 255, 10],
+  [0.02, 153, 255, 20],
+  [0.01, 51, 238, 82],
+  [0.005, 20, 213, 102],
+  [0.002, 0, 170, 153],
+  [0.001, 0, 34, 184],
+];
+
+function rgbToHue(r: number, g: number, b: number): { hue: number; sat: number } {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (max === 0 || d === 0) return { hue: -1, sat: 0 };
+  const sat = d / max;
+  let hue: number;
+  if (max === r) hue = ((g - b) / d) % 6;
+  else if (max === g) hue = (b - r) / d + 2;
+  else hue = (r - g) / d + 4;
+  hue *= 60;
+  if (hue < 0) hue += 360;
+  return { hue, sat };
+}
+
+// 앵커의 hue → log10(Sva) 단조 보간용 배열 (hue 내림차순: 파랑→빨강)
+const LP_HUE_TABLE = LP_SVA_ANCHORS
+  .map(([sva, r, g, b]) => ({ hue: rgbToHue(r, g, b).hue, logSva: Math.log10(sva) }))
+  .filter((a) => a.hue >= 0)
+  .sort((a, b) => b.hue - a.hue);
+
+/** lmoni 지도 점 색 → { 계급(0~4), Sva(cm/s) }. 무채색/매칭 실패는 null */
+export function getLpFromRGB(r: number, g: number, b: number): { cls: number; sva: number } | null {
+  const { hue, sat } = rgbToHue(r, g, b);
+  if (hue < 0 || sat < 0.35) return null;
+  const t = LP_HUE_TABLE;
+  if (hue >= t[0].hue) {
+    // 파랑 끝보다 낮음 → 최저 레벨 이하
+    return { cls: 0, sva: Math.pow(10, t[t.length - 1].logSva) };
+  }
+  if (hue <= t[t.length - 1].hue) {
+    // 빨강 끝 → 최상 레벨 (계급 4)
+    return { cls: 4, sva: 1000 };
+  }
+  for (let i = 0; i < t.length - 1; i++) {
+    const hi = t[i];
+    const lo = t[i + 1];
+    if (hue <= hi.hue && hue >= lo.hue) {
+      const f = (hi.hue - hue) / (hi.hue - lo.hue || 1);
+      const logSva = hi.logSva + f * (lo.logSva - hi.logSva);
+      const sva = Math.pow(10, logSva);
+      // 부동소수점 오차 허용: 앵커 값이 경계와 정확히 일치할 때 반올림 손실로 계급이 하나 내려가는 것 방지
+      const cls = sva >= 99.5 ? 4 : sva >= 49.5 ? 3 : sva >= 14.8 ? 2 : sva >= 4.8 ? 1 : 0;
+      return { cls, sva };
+    }
+  }
+  return null;
+}
+
+/** 장주기 계급 구간을 0.5 단위 스트링으로 (배지 표시용) — 계급 자체는 정수 0~4 */
+export function lpClsToStr(cls: number): string {
+  return String(cls);
+}
+
 /** 감지 이벤트 히스토리 항목 (data/history.json에 저장, GET /api/history로 제공) */
 export interface DetectedEventHistoryEntry {
   id: number; // 시작 시각 epoch ms
@@ -142,11 +240,32 @@ function getKmoniShindoUrl(now: Date): { url: string; timeStr: string } {
   };
 }
 
+// lmoni(장주기 지진동 모니터)는 kmoni와 동일한 352x400 캔버스/관측점 좌표계를 쓴다 (검증 완료)
+// abrspmx = 전 주기대(1~7초) 최대 장주기 지진동 계급
+function getLmoniUrl(now: Date): { url: string; timeStr: string } {
+  const jst = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60000);
+  const yyyy = jst.getFullYear();
+  const MM = String(jst.getMonth() + 1).padStart(2, '0');
+  const dd = String(jst.getDate()).padStart(2, '0');
+  const HH = String(jst.getHours()).padStart(2, '0');
+  const mm = String(jst.getMinutes()).padStart(2, '0');
+  const ss = String(jst.getSeconds()).padStart(2, '0');
+
+  const u1 = `${yyyy}${MM}${dd}`;
+  const u2 = `${yyyy}${MM}${dd}${HH}${mm}${ss}`;
+
+  return {
+    url: `https://www.lmoni.bosai.go.jp/monitor/data/data/map_img/RealTimeImg/abrspmx_s/${u1}/${u2}.abrspmx_s.gif`,
+    timeStr: `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`
+  };
+}
+
 export class ServerIntensityAggregator {
   private stations: StationPointMeta[] = [];
   private latestKmoniPayload: IntensityUpdatePayload | null = null;
   private latestYahooPayload: IntensityUpdatePayload | null = null;
-  private sseClients: Set<(data: IntensityUpdatePayload) => void> = new Set();
+  private latestLpPayload: LpUpdatePayload | null = null;
+  private sseClients: Set<(data: SsePayload) => void> = new Set();
   private timer: NodeJS.Timeout | null = null;
   private isDestroyed = false;
   
@@ -169,6 +288,8 @@ export class ServerIntensityAggregator {
   private static readonly MAX_EVENT_FRAMES = 300; // 최대 300초(5분) 분량 — 감지 시작 부분이 잘리지 않도록 충분히 크게
   // 감지 확정 이전 프레임 프리롤(리플레이/리포트 앞에 붙임): 판정 지연으로 흔들림 시작이 잘리지 않게
   private static readonly RECENT_FRAME_RING = 15;
+  // 감지 이벤트 히스토리 최대 보관 수 (data/history.json + data/events/)
+  private static readonly MAX_HISTORY_ENTRIES = 100;
   private recentFrameRing: { timeStr: string; gif: Buffer; grid: any }[] = [];
 
   // 즉시 알림 메시지를 감지 종료 시 수정(리포트 추가)하기 위한 상태
@@ -202,7 +323,7 @@ export class ServerIntensityAggregator {
           this.eventHistory = json.items
             .filter((e: any) => e && typeof e.id === 'number')
             .sort((a: DetectedEventHistoryEntry, b: DetectedEventHistoryEntry) => b.id - a.id)
-            .slice(0, 50);
+            .slice(0, ServerIntensityAggregator.MAX_HISTORY_ENTRIES);
         }
       }
       console.log(`[History] 감지 이벤트 ${this.eventHistory.length}개 로드 완료`);
@@ -299,6 +420,43 @@ export class ServerIntensityAggregator {
     return intensities;
   }
 
+  /** lmoni abrspmx GIF → 관측점별 장주기 (계급 + 표시색). 점이 1~2px 어긋난 관측점을 위해 ±2px에서 탐색 */
+  private parseLpMap(gifBuffer: Buffer): { lp: Record<string, number | null>; lpColors: Record<string, string | null> } {
+    const reader = new GifReader(gifBuffer);
+    const width = reader.width;
+    const height = reader.height;
+
+    const rgba = new Uint8Array(width * height * 4);
+    reader.decodeAndBlitFrameRGBA(0, rgba);
+
+    const lp: Record<string, number | null> = {};
+    const lpColors: Record<string, string | null> = {};
+
+    for (const stn of this.stations) {
+      lp[stn.Code] = null;
+      lpColors[stn.Code] = null;
+      if (!stn.Point || stn.IsSuspended) continue;
+
+      const { x, y } = stn.Point;
+      if (x < 2 || x >= width - 2 || y < 2 || y >= height - 2) continue;
+
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const idx = ((y + dy) * width + (x + dx)) * 4;
+          if (rgba[idx + 3] === 0) continue;
+          const hit = getLpFromRGB(rgba[idx], rgba[idx + 1], rgba[idx + 2]);
+          if (!hit) continue;
+          lp[stn.Code] = hit.cls;
+          lpColors[stn.Code] = `rgb(${rgba[idx]}, ${rgba[idx + 1]}, ${rgba[idx + 2]})`;
+          dy = 3; // break outer
+          break;
+        }
+      }
+    }
+
+    return { lp, lpColors };
+  }
+
   /** 감지 종료 시 이벤트 기록을 만들어 히스토리에 저장한다. 프레임 버퍼 스냅샷으로 리플레이 데이터도 만든다. */
   private recordEventHistory(
     anim: { buf: Buffer; mime: string; frameCount: number } | null,
@@ -364,7 +522,9 @@ export class ServerIntensityAggregator {
       replay,
     };
     this.eventHistory.unshift(entry);
-    if (this.eventHistory.length > 50) this.eventHistory.length = 50;
+    if (this.eventHistory.length > ServerIntensityAggregator.MAX_HISTORY_ENTRIES) {
+      this.eventHistory.length = ServerIntensityAggregator.MAX_HISTORY_ENTRIES;
+    }
     this.persistHistory();
     console.log(`[History] 감지 이벤트 기록: ${new Date(start).toISOString()} 최대 ${entry.maxJindoStr} (${this.eventHistory.length}번째)`);
 
@@ -852,13 +1012,16 @@ export class ServerIntensityAggregator {
     return source === 'kmoni' ? this.latestKmoniPayload : this.latestYahooPayload;
   }
 
-  public subscribeSSE(listener: (data: IntensityUpdatePayload) => void): () => void {
+  public subscribeSSE(listener: (data: SsePayload) => void): () => void {
     this.sseClients.add(listener);
     if (this.latestKmoniPayload) {
       listener(this.latestKmoniPayload);
     }
     if (this.latestYahooPayload) {
       listener(this.latestYahooPayload);
+    }
+    if (this.latestLpPayload) {
+      listener(this.latestLpPayload);
     }
     return () => {
       this.sseClients.delete(listener);
@@ -949,7 +1112,8 @@ export class ServerIntensityAggregator {
       try {
         await Promise.allSettled([
           this.fetchAndParseKmoni(),
-          this.fetchYahooRealtime()
+          this.fetchYahooRealtime(),
+          this.fetchAndParseLmoni()
         ]);
       } catch (err) {
         console.warn('[ServerIntensityAggregator] 루프 처리 중 경고:', err);
@@ -1040,6 +1204,77 @@ export class ServerIntensityAggregator {
       });
     } catch (e) {
       // 파싱 예외 무시
+    }
+  }
+
+  private lmoniOptimalDelay = 2000;
+  private lmoniConsecutiveFailures = 0;
+
+  /**
+   * lmoni(장주기 지진동 모니터) abrspmx GIF를 가져와 계급 맵을 SSE로 브로드캐스트한다.
+   * kmoni 감지 파이프라인과 독립적 — 실패해도 기존 감지/웹훅에 영향이 없다.
+   */
+  private async fetchAndParseLmoni() {
+    const base = this.lmoniOptimalDelay;
+    const candidates = [base, base + 1000, base - 1000, 2000, 3000, 4000, 1000, 5000];
+    const delays = Array.from(new Set(candidates)).filter(d => d >= 1000 && d <= 6000);
+
+    let buffer: Buffer | null = null;
+    let finalTimeStr = '';
+
+    for (const delay of delays) {
+      const targetDate = new Date(Date.now() - delay);
+      const { url, timeStr } = getLmoniUrl(targetDate);
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1800);
+        const resp = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': 'https://www.lmoni.bosai.go.jp/monitor/'
+          }
+        });
+        clearTimeout(timeout);
+
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+          finalTimeStr = timeStr;
+          this.lmoniOptimalDelay = delay;
+          break;
+        }
+      } catch {}
+    }
+
+    if (!buffer) {
+      this.lmoniConsecutiveFailures++;
+      // 연속 실패가 길어지면 폴링 강도를 낮춘다 (lmoni 서버 배려)
+      if (this.lmoniConsecutiveFailures % 5 !== 0) return;
+    }
+
+    try {
+      const { lp, lpColors } = this.parseLpMap(buffer);
+      this.broadcastLp({
+        timestamp: Date.now(),
+        source: 'lmoni',
+        dataTime: finalTimeStr,
+        lp,
+        lpColors
+      });
+      if (buffer) this.lmoniConsecutiveFailures = 0;
+    } catch (e) {
+      // 파싱 예외 무시
+    }
+  }
+
+  private broadcastLp(payload: LpUpdatePayload) {
+    this.latestLpPayload = payload;
+    for (const client of this.sseClients) {
+      try {
+        client(payload);
+      } catch {}
     }
   }
 

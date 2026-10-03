@@ -24,6 +24,7 @@ import { P2PQuakeCard } from './components/P2PQuakeCard';
 import { HistoryCard } from './components/HistoryCard';
 import { ReplayViewer } from './components/ReplayViewer';
 import { DataDelayBadge } from './components/DataDelayBadge';
+import { LpBadge } from './components/LpBadge';
 
 import { useIsMobile } from './hooks/useIsMobile';
 import { MobileHeader } from './components/mobile/MobileHeader';
@@ -444,6 +445,7 @@ export default function App() {
       <div ref={containerRef} className={styles.map} />
 
       <DataDelayBadge />
+      <LpBadge />
 
       {isMobile ? (
         <div className={mobileStyles.mobileRoot}>

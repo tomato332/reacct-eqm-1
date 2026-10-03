@@ -15,6 +15,7 @@ import { QuakeDetectService } from '../src/QuakeDetectService';
 import { StationPointMeta } from '../server-intensity';
 import {
   getIntensityFromRGB,
+  getLpFromRGB,
   isInInsetRegion,
   validateSpatialSupport,
   MAIN_PROJECTION,
@@ -185,6 +186,22 @@ console.log('\n[5] 다중 프레임 GIF 인코딩 (실제 kmoni 프레임, 네�
   } catch (e) {
     skip('다중 프레임 GIF 인코딩', `네트워크 오류: ${(e as Error).message.slice(0, 60)}`);
   }
+}
+
+console.log('\n[6] 장주기 지진동(lmoni) 색 판정');
+{
+  const f = getLpFromRGB;
+  // 파랑(저Sva) → 초록 → 노랑 → 주황 → 빨강(고Sva) 순서로 계급 증가
+  check('파랑(평시) → 계급 0', f(0, 43, 232)?.cls === 0);
+  check('청록 → 계급 0', f(0, 170, 153)?.cls === 0);
+  check('초록 → 계급 0', f(102, 255, 51)?.cls === 0);
+  check('노랑(Sva≈1) → 계급 0', f(255, 213, 0)?.cls === 0);
+  check('주황(Sva≈5) → 계급 1', f(255, 153, 0)?.cls === 1);
+  check('진주황(Sva≈20) → 계급 2', f(255, 85, 0)?.cls === 2);
+  check('적주황(Sva≈50) → 계급 3', f(255, 60, 0)?.cls === 3);
+  check('빨강(Sva≈100) → 계급 4', f(255, 34, 0)?.cls === 4);
+  check('흰색(배경) → null', f(255, 255, 255) === null);
+  check('회색(경계선) → null', f(128, 128, 128) === null);
 }
 
 console.log(`\n===== 결과: 통과 ${passed} / 실패 ${failed} / 스킵 ${skipped} =====`);

@@ -87,6 +87,12 @@ export const Legend: React.FC<LegendProps> = ({ dataSource }) => {
             <span className={styles.colorJapan} /> {t('legend.japanIslands')}
           </div>
 
+          {dataSource !== 'p2pquake' && (
+            <div className={styles.legendItem}>
+              <span className={styles.colorLpPoint} /> {t('legend.lpPoint')}
+            </div>
+          )}
+
           <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
             <SystemStatusCard defaultExpanded={false} />
           </div>

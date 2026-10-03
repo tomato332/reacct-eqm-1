@@ -50,6 +50,15 @@ export interface MapRendererController {
   cleanup: () => void;
 }
 
+/** 서버 장주기 지진동 페이로드 (SSE, server-intensity.ts의 LpUpdatePayload와 동일 구조) */
+export interface LpUpdatePayload {
+  timestamp: number;
+  source: 'lmoni';
+  dataTime: string;
+  lp: Record<string, number | null>;
+  lpColors: Record<string, string | null>;
+}
+
 /** 서버 감지 이벤트 히스토리 항목 (GET /api/history, DetectedEventHistoryEntry와 동일 구조) */
 export interface HistoryEntry {
   id: number;

@@ -677,6 +677,29 @@ export class CleanVectorMapRenderer {
         }
       });
 
+      // 장주기 지진동(lmoni) 점 레이어: 계급 1 이상 관측점을 진도 점 뒤에 크게 표시 (halo)
+      map.addSource('lp-points', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+      map.addLayer({
+        id: 'lp-points-layer',
+        type: 'circle',
+        source: 'lp-points',
+        paint: {
+          'circle-radius': [
+            'interpolate', ['linear'], ['zoom'],
+            4, 7,
+            8, 11
+          ],
+          'circle-color': ['get', 'color'],
+          'circle-opacity': 0.5,
+          'circle-stroke-width': 1.5,
+          'circle-stroke-color': ['get', 'color'],
+          'circle-stroke-opacity': 0.9
+        }
+      }, 'intensity-points-layer');
+
       // 관측소 마우스 이벤트
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       map.on('mousemove', 'intensity-points-layer', (e: any) => {
@@ -849,9 +872,43 @@ export class CleanVectorMapRenderer {
       });
 
       // 실시간 데이터 수신 핸들러 (SSE 스트림 및 폴백)
+      // 장주기(lmoni) 페이로드 → 지도 점 갱신 + 최대 계급 이벤트 발행
+      const updateLpPoints = (lp: Record<string, number | null>, lpColors: Record<string, string | null>) => {
+        const src = map.getSource('lp-points');
+        if (!src) return;
+        const features: any[] = [];
+        let maxCls = 0;
+        const stationFeatures = kmoniQuakeService.geojson?.features ?? [];
+        for (const f of stationFeatures) {
+          const code = f.properties?.code;
+          if (code == null) continue;
+          const cls = lp[code];
+          if (cls != null && cls >= 1) {
+            if (cls > maxCls) maxCls = cls;
+            features.push({
+              type: 'Feature',
+              geometry: f.geometry,
+              properties: { code, color: lpColors[code] ?? '#ff9900' }
+            });
+          }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (src as any).setData({ type: 'FeatureCollection', features });
+        window.dispatchEvent(new CustomEvent('eqm-lp-max', { detail: { maxCls, count: features.length, ts: Date.now() } }));
+      };
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handleServerPayload = (payload: any) => {
-        if (!payload || !payload.intensities) return;
+        if (!payload) return;
+
+        // 장주기 지진동(lmoni) 페이로드: 계급 1 이상 관측점만 표시
+        if (payload.source === 'lmoni') {
+          if (replayActive) return;
+          updateLpPoints(payload.lp ?? {}, payload.lpColors ?? {});
+          return;
+        }
+
+        if (!payload.intensities) return;
         const { source, intensities } = payload;
 
         dataHealthService.report('kmoni', {

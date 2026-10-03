@@ -73,6 +73,9 @@ export const resources = {
       dataDelay: {
         title: '데이터 지연',
       },
+      lpBadge: {
+        title: '장주기 계급',
+      },
       eew: {
         title: '긴급지진속보 (EEW)',
         unknownEpicenter: '진원지 불명',
@@ -98,6 +101,7 @@ export const resources = {
         sWave: 'S파 도달 범위 (S-Wave, 주요동)',
         realtimeStation: '실시간 관측소',
         japanIslands: '일본 열도',
+        lpPoint: '장주기 지진동 (계급 1 이상)',
         niedGif: 'NIED GIF 파싱',
         yahooJson: 'Yahoo! JSON',
       },
@@ -219,6 +223,9 @@ export const resources = {
       dataDelay: {
         title: 'Data delayed',
       },
+      lpBadge: {
+        title: 'LPGM class',
+      },
       eew: {
         title: 'Earthquake Early Warning (EEW)',
         unknownEpicenter: 'Unknown Epicenter',
@@ -244,6 +251,7 @@ export const resources = {
         sWave: 'S-Wave Arrival Range (Main Shaking)',
         realtimeStation: 'Real-time Station',
         japanIslands: 'Japan Archipelago',
+        lpPoint: 'Long-period ground motion (class 1+)',
         niedGif: 'NIED GIF Stream',
         yahooJson: 'Yahoo! JSON',
       },
@@ -365,6 +373,9 @@ export const resources = {
       dataDelay: {
         title: 'データ遅延',
       },
+      lpBadge: {
+        title: '長周期階級',
+      },
       eew: {
         title: '緊急地震速報 (EEW)',
         unknownEpicenter: '震源地不明',
@@ -389,6 +400,7 @@ export const resources = {
         sWave: 'S波 到達予想範囲 (主要動)',
         realtimeStation: 'リアルタイム観測点',
         japanIslands: '日本列島',
+        lpPoint: '長周期地震動（階級1以上）',
         niedGif: 'NIED GIF 解析',
         yahooJson: 'Yahoo! JSON',
       },

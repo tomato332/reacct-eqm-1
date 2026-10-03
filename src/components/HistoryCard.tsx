@@ -74,7 +74,7 @@ export const HistoryCard: React.FC<HistoryCardProps> = ({ onFocusEpicenter, onRe
         {loadFailed && items === null && (
           <div className={styles.historyEmpty}>{t('history.loadFailed')}</div>
         )}
-        {(items ?? []).slice(0, 20).map((e) => (
+        {(items ?? []).map((e) => (
           <div
             key={e.id}
             className={`${styles.historyItem} ${e.replay || e.center ? styles.historyItemClickable : ''}`}
